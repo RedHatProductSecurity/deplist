@@ -124,15 +124,29 @@ func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
 						})
 				}
 			default:
-
 				ext := filepath.Ext(filename)
-
 				// java
-				if ext == ".jar" || ext == ".war" || ext == ".ear" || ext == ".adm" || ext == ".hpi" || ext == ".zip" {
+				switch ext {
+				case ".zip":
+					// be more aggressive with zip files, must contain something java ish
+					if ok, _ := utils.ZipContainsJava(path); !ok {
+						return nil
+					}
+					fallthrough
+				case ".jar":
+					fallthrough
+				case ".war":
+					fallthrough
+				case ".ear":
+					fallthrough
+				case ".adm":
+					fallthrough
+				case ".hpi":
 					file := strings.Replace(filepath.Base(path), ext, "", 1) // get filename, check if we can ignore
 					if strings.HasSuffix(file, "-sources") || strings.HasSuffix(file, "-javadoc") {
 						return nil
 					}
+
 					pkgs, err := scan.GetJarDeps(path)
 					if err == nil {
 
