@@ -1,7 +1,6 @@
 package deplist
 
 import (
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -9,6 +8,8 @@ import (
 
 	"github.com/RedHatProductSecurity/deplist/internal/scan"
 	"github.com/RedHatProductSecurity/deplist/internal/utils"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // enums start at 1 to allow us to specify found languages 0 = nil
@@ -107,7 +108,9 @@ func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
 			case "yarn.lock":
 				pkgs, err := scan.GetNodeJSDeps(path)
 				if err != nil {
-					return err
+					// ignore error
+					log.Debugf("failed to scan for nodejs: %s", path)
+					return nil
 				}
 
 				if len(pkgs) > 0 {
