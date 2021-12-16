@@ -93,7 +93,8 @@ func runGoList(path string) ([]byte, error) {
 	if err != nil {
 		// rerun with -mod=vendor
 		vendorDir := filepath.Join(filepath.Dir(path), "vendor")
-		if _, err := os.Stat(vendorDir); err != nil {
+		_, err := os.Stat(vendorDir)
+		if err == nil {
 			if !os.IsNotExist(err) {
 				log.Debug("Retrying `go list` with `-mod=vendor` flag")
 				out, err = runCmd(path, "-mod=vendor")
