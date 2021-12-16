@@ -46,7 +46,7 @@ func getVersion(deps GoListDeps) string {
 	return deps.Module.Version
 }
 
-func runCmd(path string, mod bool) ([]byte, error) {
+func runCmd(path string, extraFlag string) ([]byte, error) {
 	// go list -f '{{if not .Standard}}{{.Module}}{{end}}' -json -deps ./...
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
@@ -54,16 +54,10 @@ func runCmd(path string, mod bool) ([]byte, error) {
 	// go list -f '{{if not .Standard}}{{.Module}}{{end}}' -json -deps ./...
 	var cmd *exec.Cmd
 
-	if !mod {
+	if extraFlag == "" {
 		cmd = exec.CommandContext(ctx, "go", "list", "-json", "-deps", "./...")
 	} else {
-		vendorDir := filepath.Join(filepath.Dir(path), "vendor")
-		if _, err := os.Stat(vendorDir); err != nil {
-			if os.IsNotExist(err) {
-				return nil, errors.New("no 'vendor' directory, can't use '-mod=vendor'")
-			}
-		}
-		cmd = exec.CommandContext(ctx, "go", "list", "-mod=vendor", "-json", "-deps", "./...")
+		cmd = exec.CommandContext(ctx, "go", "list", extraFlag, "-json", "-deps", "./...")
 	}
 
 	cmd.Dir = filepath.Dir(path) // // force directory
@@ -77,7 +71,7 @@ func runCmd(path string, mod bool) ([]byte, error) {
 	// that case ignore the error and return what we can
 	if err != nil {
 		log.Debug(string(err.(*exec.ExitError).Stderr))
-		if !mod {
+		if extraFlag == "" {
 			// assume some retrival error, we have to redo the cmd with mod=vendor
 			return nil, err
 		}
@@ -95,12 +89,23 @@ func runCmd(path string, mod bool) ([]byte, error) {
 * First run defaults to without, if any kind of error we'll just retry the run
  */
 func runGoList(path string) ([]byte, error) {
-	out, err := runCmd(path, false)
+	out, err := runCmd(path, "")
 	if err != nil {
-		// rerun
-		out, err = runCmd(path, true)
+		// rerun with -mod=vendor
+		vendorDir := filepath.Join(filepath.Dir(path), "vendor")
+		if _, err := os.Stat(vendorDir); err != nil {
+			if !os.IsNotExist(err) {
+				log.Debug("Retrying `go list` with `-mod=vendor` flag")
+				out, err = runCmd(path, "-mod=vendor")
+			}
+		}
 		if err != nil {
-			return nil, err
+			log.Debug("Retrying `go list` with `-e` flag")
+			out, err = runCmd(path, "-e")
+			if err != nil {
+				return nil, errors.New("All `go list` attempts failed")
+
+			}
 		}
 	}
 
