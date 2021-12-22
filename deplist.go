@@ -23,24 +23,18 @@ const (
 
 func init() {
 	// check for the library required binaries
-	if _, err := exec.LookPath("yarn"); err != nil {
-		log.Fatal("yarn is required in PATH")
+	languages := map[string]string{
+		"yarn":   "yarn",
+		"npm":    "npm",
+		"go":     "go",
+		"mvn":    "maven",
+		"bundle": "bundler gem",
 	}
 
-	if _, err := exec.LookPath("npm"); err != nil {
-		log.Fatal("npm is required in PATH")
-	}
-
-	if _, err := exec.LookPath("go"); err != nil {
-		log.Fatal("go is required")
-	}
-
-	if _, err := exec.LookPath("mvn"); err != nil {
-		log.Fatal("maven is required")
-	}
-
-	if _, err := exec.LookPath("bundle"); err != nil {
-		log.Fatal("bundler gem is required")
+	for lang_bin, lang_name := range languages {
+		if _, err := exec.LookPath(lang_bin); err != nil {
+			log.Fatal(lang_name, " is required in PATH")
+		}
 	}
 }
 
