@@ -301,13 +301,17 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 
 // GetDeps scans a given repository and returns all dependencies found in a DependencyList struct.
 func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
+	log.Debugf("Checking %s", fullPath)
 	deps, foundTypes, err := getDeps(fullPath)
 	if err != nil {
 		return deps, foundTypes, err
 	}
 	// if no deps found, check one level lower in 'src' directory
+	// but ignore any new errors
 	if len(deps) == 0 {
-		deps, foundTypes, err = getDeps(filepath.Join("src", fullPath))
+		fullPath = filepath.Join(fullPath, "src")
+		log.Debugf("Checking %s", fullPath)
+		deps, foundTypes, _ = getDeps(fullPath)
 	}
 
 	return deps, foundTypes, err
