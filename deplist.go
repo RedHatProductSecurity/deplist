@@ -60,8 +60,7 @@ func GetLanguageStr(bm Bitmask) string {
 	return "unknown"
 }
 
-// GetDeps scans a given repository and returns all dependencies found in a DependencyList struct.
-func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
+func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 	// var deps DependencyList
 	var deps []Dependency
 	var foundTypes Bitmask = 0
@@ -298,4 +297,18 @@ func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
 	}
 
 	return deps, foundTypes, nil
+}
+
+// GetDeps scans a given repository and returns all dependencies found in a DependencyList struct.
+func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
+	deps, foundTypes, err := getDeps(fullPath)
+	if err != nil {
+		return deps, foundTypes, err
+	}
+	// if no deps found, check one level lower in 'src' directory
+	if len(deps) == 0 {
+		deps, foundTypes, err = getDeps(filepath.Join("src", fullPath))
+	}
+
+	return deps, foundTypes, err
 }
