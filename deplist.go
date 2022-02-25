@@ -1,6 +1,7 @@
 package deplist
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -293,9 +294,23 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 	return deps, foundTypes, nil
 }
 
+// findBaseDir walks a directory tree through empty subdirs til it finds a directory with content
+func findBaseDir(fullPath string) string {
+	log.Debugf("Checking %s", fullPath)
+	files, err := ioutil.ReadDir(fullPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if len(files) == 1 && files[0].IsDir() {
+		return findBaseDir(filepath.Join(fullPath, files[0].Name()))
+	}
+	return fullPath
+}
+
 // GetDeps scans a given repository and returns all dependencies found in a DependencyList struct.
 func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
-	log.Debugf("Checking %s", fullPath)
+	fullPath = findBaseDir(fullPath)
+
 	deps, foundTypes, err := getDeps(fullPath)
 	if err != nil {
 		return deps, foundTypes, err
