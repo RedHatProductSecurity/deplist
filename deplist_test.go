@@ -1,6 +1,9 @@
 package deplist
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -313,6 +316,81 @@ func TestGetDeps(t *testing.T) {
 		}
 		if !flag {
 			t.Errorf("GetDeps() wanted: %s - not found", pkg.Path)
+		}
+	}
+}
+
+func TestFindBaseDir(t *testing.T) {
+	type TestCase struct {
+		Input    string
+		Expected string
+		Err      bool
+	}
+
+	tests := make([]TestCase, 5)
+
+	top := t.TempDir()
+	tests[0] = TestCase{
+		Input:    "non-existent directory",
+		Expected: "",
+		Err:      true,
+	}
+
+	dirpath := filepath.Join(top, "baz")
+	os.MkdirAll(dirpath, 0755)
+	tests[1] = TestCase{
+		Input:    dirpath,
+		Expected: dirpath,
+		Err:      false,
+	}
+
+	tempFile, err := ioutil.TempFile(top, "bar")
+	if err != nil {
+		t.Error(err)
+	}
+	tests[2] = TestCase{
+		Input:    tempFile.Name(),
+		Expected: "",
+		Err:      true,
+	}
+
+	dirpath = filepath.Join(top, "foo/bar/foo/bar/foo/bar")
+	err = os.MkdirAll(dirpath, 0755)
+	if err != nil {
+		t.Error(err)
+	}
+	tests[3] = TestCase{
+		Input:    filepath.Join(top, "foo"),
+		Expected: dirpath,
+		Err:      false,
+	}
+
+	top = t.TempDir()
+	dirpath = filepath.Join(top, "foo/bar/foo/bar/foo/bar")
+	err = os.MkdirAll(dirpath, 0755)
+	if err != nil {
+		t.Error(err)
+	}
+	tempFile, err = ioutil.TempFile(filepath.Join(top, "foo/bar/foo"), "baz")
+	if err != nil {
+		t.Error(err)
+	}
+	tests[4] = TestCase{
+		Input:    filepath.Join(top, "foo"),
+		Expected: filepath.Join(top, "foo/bar/foo"),
+		Err:      false,
+	}
+
+	for i, test := range tests {
+		dir, err := findBaseDir(test.Input)
+
+		if test.Err {
+			if err == nil {
+				t.Errorf("%d: Expected error reading directory: %s but didn't get one", i, dir)
+			}
+		}
+		if test.Expected != dir {
+			t.Errorf("%d: Expected %s, got %s", i, test.Expected, dir)
 		}
 	}
 }
