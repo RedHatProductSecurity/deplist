@@ -1,6 +1,7 @@
 package deplist
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -215,14 +216,21 @@ func BuildWant() []Dependency {
 		"addressable",
 	}
 
-	pythonSet := []string{
-		"cotyledon",
-		"Flask",
-		"kuryr-lib",
-		"docutils",
-		"python-dateutil",
-		"unittest2",
-		"cryptography",
+	pythonSet := []Dependency{
+		Dependency{DepType: LangPython, Path: "cotyledon"},
+		Dependency{DepType: LangPython, Path: "Flask"},
+		Dependency{DepType: LangPython, Path: "kuryr-lib"},
+		Dependency{DepType: LangPython, Path: "docutils"},
+		Dependency{DepType: LangPython, Path: "python-dateutil"},
+		Dependency{DepType: LangPython, Path: "unittest2", Version: "0.5.1"},
+		Dependency{DepType: LangPython, Path: "cryptography", Version: "2.3.0"},
+		Dependency{DepType: LangPython, Path: "suds-py3"},
+		Dependency{DepType: LangPython, Path: "suds"},
+		Dependency{DepType: LangPython, Path: "git+https://github.com/candlepin/subscription-manager#egg=subscription_manager"},
+		Dependency{DepType: LangPython, Path: "git+https://github.com/candlepin/python-iniparse#egg=iniparse"},
+		Dependency{DepType: LangPython, Path: "iniparse"},
+		Dependency{DepType: LangPython, Path: "requests"},
+		Dependency{DepType: LangPython, Path: "m2crypto"},
 	}
 
 	for _, n := range golangPaths {
@@ -257,7 +265,7 @@ func BuildWant() []Dependency {
 
 	for _, n := range npmSet1 {
 		d := Dependency{
-			DepType: 3,
+			DepType: LangNodeJS,
 			Path:    n,
 		}
 		deps = append(deps, d)
@@ -272,21 +280,16 @@ func BuildWant() []Dependency {
 		deps = append(deps, d)
 	}
 
-	for _, n := range pythonSet {
-		d := Dependency{
-			DepType: LangPython,
-			Path:    n,
-		}
-		deps = append(deps, d)
-	}
-
-	end := len(deps) - 2 // get the cryptography ver
-	deps[end].Version = "0.5.1"
-
-	end = len(deps) - 1 // get the cryptography ver
-	deps[end].Version = "2.3.0"
+	deps = append(deps, pythonSet...)
 
 	return deps
+}
+
+func depToKey(pkg Dependency) string {
+	key := fmt.Sprintf("%s:%s", GetLanguageStr(pkg.DepType), pkg.Path)
+	// fmt.Println(key)
+	// return key
+	return key
 }
 
 func TestGetDeps(t *testing.T) {
@@ -298,25 +301,43 @@ func TestGetDeps(t *testing.T) {
 		t.Errorf("GotBitmask() != 31; got: %d", gotBitmask)
 	}
 
-	// iterate thru and compare
-	if len(want) != len(got) {
-		t.Errorf("GetDeps() = %d; want %d", len(got), len(want))
+	gotMap := make(map[string]Dependency)
+	wantMap := make(map[string]Dependency)
+
+	for _, pkg := range got {
+		key := depToKey(pkg)
+		if _, ok := gotMap[key]; !ok {
+			gotMap[key] = pkg
+		}
 	}
 
 	for _, pkg := range want {
-		// because the maps are random...
-		flag := false
-		for _, g := range got {
-			if pkg.Path == g.Path {
-				if pkg.Version == "" || pkg.Version == g.Version {
-					flag = true
-					break
+		key := depToKey(pkg)
+		if _, ok := wantMap[key]; !ok {
+			wantMap[key] = pkg
+		}
+	}
+
+	for _, w := range want {
+		key := depToKey(w)
+		if g, ok := gotMap[key]; !ok {
+			t.Errorf("GetDeps() wanted: %s - not found", key)
+		} else {
+			if w.Version != "" && w.Version != g.Version {
+				t.Errorf("%s version mismatch: wanted %s but got %s", key, w.Version, g.Version)
+			}
+		}
+	}
+
+	if len(want) != len(got) {
+		if len(got) > len(want) {
+			for _, pkg := range got {
+				if _, ok := wantMap[depToKey(pkg)]; !ok {
+					t.Errorf("GetDeps() got unexpected: %s", pkg.Path)
 				}
 			}
 		}
-		if !flag {
-			t.Errorf("GetDeps() wanted: %s - not found", pkg.Path)
-		}
+		t.Errorf("GetDeps() = %d; want %d", len(got), len(want))
 	}
 }
 

@@ -36,6 +36,11 @@ func GetPythonDeps(path string) (map[string]string, error) {
 			continue
 		}
 
+		// trim off suffixes like below
+		// suds-py3;python_version>="3.0"
+		// suds;python_version<"3.0"
+		line = strings.Split(line, ";")[0]
+
 		// easy case, elasticsearch-curator==5.8.1
 		// record name and version, only for ==
 		idx := strings.Index(line, "==")
@@ -53,12 +58,16 @@ func GetPythonDeps(path string) (map[string]string, error) {
 			continue
 		}
 
-		// every other permitation just use the name as we can't guarantee
+		// every other permutation just use the name as we can't guarantee
 		// the version, just grab the name using first occurrence
 		match := re.FindStringIndex(line)
 
 		if match != nil {
+			// save substr before special chars
 			gathered[line[:match[0]]] = ""
+		} else {
+			// save entire substr
+			gathered[line] = ""
 		}
 	}
 

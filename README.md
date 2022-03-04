@@ -2,7 +2,45 @@
 
 # deplist
 
-Scans a given repo for Golang, NodeJS (more comming) for dependencies.
+Scan and list the dependencies in a source code repository.
+
+* Supports:
+ - Go
+ - NodeJS
+ - Python
+ - Ruby
+ - Java
+* Dependencies are printed in PackageURL format
+
+## Requirements
+
+On Fedora:
+
+```bash
+$ dnf install -y golang-bin yarnpkg maven rubygem-bundler npm
+```
+
+## Command Line
+
+### Build from source
+
+```bash
+$ make
+go build cmd/deplist/deplist.go
+```
+
+### Run
+
+```bash
+$ ./deplist test/testRepo
+pkg:npm/d3-scale-chromatic@2.0.0
+pkg:npm/d3-time@2.0.0
+pkg:npm/prop-types@15.7.2
+pkg:npm/react@16.13.1
+...
+```
+
+## API
 
 The api functions as follows:
 
@@ -14,12 +52,12 @@ func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
 
 * **fullPath:**
 
-  To the repository to scan. Expects it to be present locally first.
+  Path to directory with source code.
 
 ### Returns
 
 * **Depenency:**
-  
+
   Array of Dependency structs from [dependencies.go](dependencies.go)
 
 
@@ -39,19 +77,3 @@ const (
 * **error:**
 
   Standard Go error handling
-
-## Command Line
-
-```bash
-$ make 
-$ ./deplist path/to/repo # Go deps
-golang.org/x/tools/go/gcexportdata v0.0.0-20201223010750-3fa0e8f87c1a
-golang.org/x/tools/internal/gocommand v0.0.0-20201223010750-3fa0e8f87c1a
-flag
-...
-$ ./deplist -deptype 4 path/to/repo # NodeJs deps
-whatwg-fetch 3.1.0
-less-loader 5.0.0
-pseudomap 1.0.2
-...
-```
