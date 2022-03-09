@@ -4,13 +4,14 @@
 
 Scan and list the dependencies in a source code repository.
 
-* Supports:
+Supports:
  - Go
  - NodeJS
  - Python
  - Ruby
  - Java
-* Dependencies are printed in PackageURL format
+
+Dependencies are printed in PackageURL format.
 
 ## Requirements
 
