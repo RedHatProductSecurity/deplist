@@ -9,6 +9,8 @@ RUN dnf install -y \
     yarnpkg \
     maven \
     rubygem-bundler \
+    ruby-devel \
+    gcc gcc-c++ \ # required by some native rubygems like unf_ext
     npm \
     && dnf clean all
 COPY --from=build /bin/deplist /

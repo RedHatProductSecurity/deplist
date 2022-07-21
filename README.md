@@ -18,7 +18,7 @@ Dependencies are printed in PackageURL format.
 On Fedora:
 
 ```bash
-$ dnf install -y golang-bin yarnpkg maven rubygem-bundler npm
+$ dnf install golang-bin yarnpkg maven rubygem-bundler ruby-devel gcc gcc-c++ npm
 ```
 
 ## Command Line
