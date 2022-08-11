@@ -6,7 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
 )
+
+func init() {
+	log.SetLevel(log.DebugLevel)
+}
 
 func BuildWant() []Dependency {
 	var deps []Dependency
@@ -295,7 +301,11 @@ func depToKey(pkg Dependency) string {
 func TestGetDeps(t *testing.T) {
 	want := BuildWant()
 
-	got, gotBitmask, _ := GetDeps("test/testRepo")
+	got, gotBitmask, err := GetDeps("test/testRepo")
+	if err != nil {
+		t.Errorf("GetDeps failed: %s", err)
+		return
+	}
 
 	if gotBitmask != 31 {
 		t.Errorf("GotBitmask() != 31; got: %d", gotBitmask)
