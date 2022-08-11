@@ -21,6 +21,9 @@ On Fedora:
 $ dnf install -y golang-bin yarnpkg maven rubygem-bundler npm
 ```
 
+
+You also need rbenv installed and in your path.
+
 ## Command Line
 
 ### Build from source
