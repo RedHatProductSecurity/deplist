@@ -25,7 +25,7 @@ func init() {
 		if err != nil {
 			log.Debugf("couldn't install bundler: %v", string(data))
 		}
-		log.Printf("Installed bundler for ruby %v\n", version)
+		log.Debugf("Installed bundler for ruby %v\n", version)
 	}
 }
 
@@ -57,7 +57,7 @@ func GetRubyDeps(path string) (map[string]string, error) {
 func GetRubyDepsWithVersion(path string, version int) (map[string]string, error) {
 	if version >= len(RubyVersions) {
 		log.Debug("GetRubyDeps Failed!")
-		return nil, errors.New("GetRubyDeps Failed: " + "path")
+		return nil, errors.New("GetRubyDeps Failed: " + path)
 	}
 	if version != 0 {
 		log.Debug("retrying...")
