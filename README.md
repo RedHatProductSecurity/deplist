@@ -22,7 +22,7 @@ $ dnf install -y golang-bin yarnpkg maven rubygem-bundler npm
 ```
 
 
-You also need rbenv installed. Any installed ruby versions will be used as backups from starting with system ruby (if available), and then from newest to oldest.
+Also supports `rbenv`. Any ruby versions installed with `rbenv` will be used as backups from starting with system ruby (if available), and then from newest to oldest.
 
 ## Command Line
 
