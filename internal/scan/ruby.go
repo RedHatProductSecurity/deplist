@@ -4,30 +4,60 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
 
-// var RUBY_VERSIONS []string = []string{"system", "2.6.8"}
+var RubyVersions []string = []string{"system"}
 
-// GetRubyDeps uses `bundle update --bundler` to list ruby dependencies when a
-// Gemfile.lock file exists
-func GetRubyDeps(path string) (map[string]string, error) {
-	return GetRubyDepsWithVersion(path, "system")
+func init() {
+	RubyVersions = append(RubyVersions, getRubyVersions()...)
+
+	log.Debugf("Ruby versions detected: %+v\n", RubyVersions)
+
+	for _, version := range RubyVersions {
+		cmd := exec.Command("gem", "install", "bundler")
+		setRubyVersion(version, cmd)
+		data, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Debugf("couldn't install bundler: %v", string(data))
+		}
+		log.Printf("Installed bundler for ruby %v\n", version)
+	}
 }
 
-func setRbenvVersion(version string, cmd *exec.Cmd) {
+func getRubyVersions() []string {
+	cmd := exec.Command("rbenv", "versions", "--bare")
+	data, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+
+	versions := strings.Split(string(data), "\n")
+	versions = versions[:len(versions)-1]
+	sort.Sort(sort.Reverse(sort.StringSlice(versions)))
+
+	return versions
+}
+
+func setRubyVersion(version string, cmd *exec.Cmd) {
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "RBENV_VERSION="+version)
 }
 
-func GetRubyDepsWithVersion(path, version string) (map[string]string, error) {
-	if version != "system" {
-		log.Debugf("retrying with ruby%v \n -> GetRubyDeps %s", version, path)
-	} else {
-		log.Debugf("GetRubyDeps %s", path)
+// GetRubyDeps uses `bundle update --bundler` to list ruby dependencies when a
+// Gemfile.lock file exists
+func GetRubyDeps(path string) (map[string]string, error) {
+	return GetRubyDepsWithVersion(path, 0)
+}
+
+func GetRubyDepsWithVersion(path string, version int) (map[string]string, error) {
+	if version != 0 {
+		log.Debug("retrying...")
 	}
+	log.Debugf("GetRubyDeps(%v) %s", RubyVersions[version], path)
 
 	gathered := make(map[string]string)
 
@@ -36,31 +66,33 @@ func GetRubyDepsWithVersion(path, version string) (map[string]string, error) {
 	//Make sure that the Gemfile we are loading is supported by the version of bundle currently installed.
 	cmd := exec.Command("bundle", "update", "--bundler")
 	cmd.Dir = dirPath
-	setRbenvVersion(version, cmd)
+	setRubyVersion(RubyVersions[version], cmd)
 
-	output, err := cmd.CombinedOutput()
+	data, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Debug(string(output))
-		if version == "2.6.8" {
+		if version == len(RubyVersions) {
+			log.Debugf("err: %v", err)
+			log.Debugf("data: %v", string(data))
 			return nil, err
 		}
-		return GetRubyDepsWithVersion(path, "2.6.8")
+
+		return GetRubyDepsWithVersion(path, version+1)
 	}
 
 	cmd = exec.Command("bundle", "list")
 
 	cmd.Dir = dirPath
-	setRbenvVersion(version, cmd)
+	setRubyVersion(RubyVersions[version], cmd)
 
-	data, err := cmd.Output()
+	data, err = cmd.Output()
 	if err != nil {
-		log.Debug(err)
-		log.Debug(string(data))
 
-		if version == "2.6.8" {
+		if version == len(RubyVersions) {
+			log.Debugf("err: %v", err)
+			log.Debugf("data: %v", string(data))
 			return nil, err
 		}
-		return GetRubyDepsWithVersion(path, "2.6.8")
+		return GetRubyDepsWithVersion(path, version+1)
 	}
 
 	splitOutput := strings.Split(string(data), "\n")
