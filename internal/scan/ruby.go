@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -54,6 +55,10 @@ func GetRubyDeps(path string) (map[string]string, error) {
 
 // GetRubyDepsWithVersion uses `bundle list` to list ruby dependencies when a Gemfile.lock file exists
 func GetRubyDepsWithVersion(path string, version int) (map[string]string, error) {
+	if version >= len(RubyVersions) {
+		log.Debug("GetRubyDeps Failed!")
+		return nil, errors.New("GetRubyDeps Failed: " + "path")
+	}
 	if version != 0 {
 		log.Debug("retrying...")
 	}
