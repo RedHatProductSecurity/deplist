@@ -2,6 +2,7 @@ package scan
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,6 +16,12 @@ var RubyVersions []string = []string{"system"}
 
 func init() {
 	RubyVersions = append(RubyVersions, getRubyVersions()...)
+	fmt.Fprintln(os.Stderr, RubyVersions)
+
+	if len(RubyVersions) == 1 {
+		fmt.Fprintln(os.Stderr, "rbenv not detected, falling back to system ruby ONLY. Please ensure that bundler is installed and available in your path.")
+		return
+	}
 
 	log.Debugf("Ruby versions detected: %+v\n", RubyVersions)
 
@@ -68,9 +75,19 @@ func GetRubyDepsWithVersion(path string, version int) (map[string]string, error)
 
 	dirPath := filepath.Dir(path)
 
+	// override the gem path otherwise might hit perm issues and it's annoying
+	gemPath, err := os.MkdirTemp("", "gem_vendor")
+	if err != nil {
+		return nil, err
+	}
+
+	// cleanup after ourselves
+	defer os.RemoveAll(gemPath)
+
 	//Make sure that the Gemfile we are loading is supported by the version of bundle currently installed.
 	cmd := exec.Command("bundle", "update", "--bundler")
 	cmd.Dir = dirPath
+	cmd.Env = append(cmd.Env, "BUNDLE_PATH="+gemPath)
 	setRubyVersion(RubyVersions[version], cmd)
 
 	data, err := cmd.CombinedOutput()
@@ -87,6 +104,7 @@ func GetRubyDepsWithVersion(path string, version int) (map[string]string, error)
 	cmd = exec.Command("bundle", "list")
 
 	cmd.Dir = dirPath
+	cmd.Env = append(cmd.Env, "BUNDLE_PATH="+gemPath)
 	setRubyVersion(RubyVersions[version], cmd)
 
 	data, err = cmd.Output()
