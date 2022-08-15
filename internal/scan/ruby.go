@@ -64,7 +64,7 @@ func GetRubyDeps(path string) (map[string]string, error) {
 func GetRubyDepsWithVersion(path string, version int) (map[string]string, error) {
 	if version >= len(RubyVersions) {
 		log.Debug("GetRubyDeps Failed!")
-		return nil, errors.New("GetRubyDeps Failed: " + path)
+		return nil, errors.New("GetRubyDeps Failed: all ruby versions failed " + path)
 	}
 	if version != 0 {
 		log.Debug("retrying...")
@@ -92,12 +92,6 @@ func GetRubyDepsWithVersion(path string, version int) (map[string]string, error)
 
 	data, err := cmd.CombinedOutput()
 	if err != nil {
-		if version == len(RubyVersions) {
-			log.Debugf("err: %v", err)
-			log.Debugf("data: %v", string(data))
-			return nil, err
-		}
-
 		return GetRubyDepsWithVersion(path, version+1)
 	}
 
