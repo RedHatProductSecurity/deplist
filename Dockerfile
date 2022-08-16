@@ -9,6 +9,9 @@ RUN dnf install -y \
     yarnpkg \
     maven \
     rubygem-bundler \
+    ruby-devel \
+    gcc \
+    gcc-c++ \ 
     npm \
     && dnf clean all
 COPY --from=build /bin/deplist /
