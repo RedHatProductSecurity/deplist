@@ -70,6 +70,15 @@ func GetRubyDepsWithVersion(path string, version int) (map[string]string, error)
 
 	dirPath := filepath.Dir(path)
 
+	// override the gem path otherwise might hit perm issues and it's annoying
+	gemPath, err := os.MkdirTemp("", "gem_vendor")
+	if err != nil {
+		return nil, err
+	}
+
+	// cleanup after ourselves
+	defer os.RemoveAll(gemPath)
+
 	//Make sure that the Gemfile we are loading is supported by the version of bundle currently installed.
 	cmd := exec.Command("bundle", "update", "--bundler")
 	cmd.Dir = dirPath
