@@ -1,11 +1,12 @@
-FROM golang:1.16-alpine AS build
+FROM registry.fedoraproject.org/fedora:35 AS builder
+RUN yum install -y golang-bin
 WORKDIR /go/src/project/
 COPY . /go/src/project/
 RUN go build -o /bin/deplist ./cmd/deplist/ 
 
-FROM registry.fedoraproject.org/fedora:34
+FROM registry.fedoraproject.org/fedora:35
 RUN dnf install -y \
-    golang-bin-1.16 \
+    golang-bin \
     yarnpkg \
     maven \
     rubygem-bundler \
@@ -14,5 +15,5 @@ RUN dnf install -y \
     gcc-c++ \ 
     npm \
     && dnf clean all
-COPY --from=build /bin/deplist /
+COPY --from=builder /bin/deplist /
 ENTRYPOINT ["/deplist"]
