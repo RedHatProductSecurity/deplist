@@ -16,6 +16,11 @@ var RubyVersions []string = []string{"system"}
 func init() {
 	RubyVersions = append(RubyVersions, getRubyVersions()...)
 
+	if len(RubyVersions) == 1 {
+		log.Debug("rbenv not detected, falling back to system ruby ONLY. Please ensure that bundler is installed and available in your path.")
+		return
+	}
+
 	log.Debugf("Ruby versions detected: %+v\n", RubyVersions)
 
 	for _, version := range RubyVersions {
@@ -56,8 +61,8 @@ func GetRubyDeps(path string) (map[string]string, error) {
 // GetRubyDepsWithVersion uses `bundle list` to list ruby dependencies when a Gemfile.lock file exists
 func GetRubyDepsWithVersion(path string, version int) (map[string]string, error) {
 	if version >= len(RubyVersions) {
-		log.Debugf("GetRubyDeps Failed: index %d greater than number of ruby versions %d", version, len(RubyVersions))
-		return nil, errors.New("GetRubyDeps Failed: " + path)
+		log.Debug("GetRubyDeps Failed!")
+		return nil, errors.New("GetRubyDeps Failed: all ruby versions failed " + path)
 	}
 	if version != 0 {
 		log.Debug("retrying...")
@@ -68,25 +73,31 @@ func GetRubyDepsWithVersion(path string, version int) (map[string]string, error)
 
 	dirPath := filepath.Dir(path)
 
+	// override the gem path otherwise might hit perm issues and it's annoying
+	gemPath, err := os.MkdirTemp("", "gem_vendor")
+	if err != nil {
+		return nil, err
+	}
+
+	// cleanup after ourselves
+	defer os.RemoveAll(gemPath)
+
 	//Make sure that the Gemfile we are loading is supported by the version of bundle currently installed.
 	cmd := exec.Command("bundle", "update", "--bundler")
 	cmd.Dir = dirPath
+	cmd.Env = append(cmd.Env, "BUNDLE_PATH="+gemPath)
 	setRubyVersion(RubyVersions[version], cmd)
 
 	data, err := cmd.CombinedOutput()
 	if err != nil {
-		if version == len(RubyVersions) {
-			log.Debugf("err: %v", err)
-			log.Debugf("data: %v", string(data))
-			return nil, err
-		}
-
 		return GetRubyDepsWithVersion(path, version+1)
 	}
 
 	cmd = exec.Command("bundle", "list")
 
 	cmd.Dir = dirPath
+	cmd.Env = append(cmd.Env, "BUNDLE_PATH="+gemPath)
+
 	setRubyVersion(RubyVersions[version], cmd)
 
 	data, err = cmd.Output()
