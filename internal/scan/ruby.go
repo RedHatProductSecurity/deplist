@@ -18,7 +18,7 @@ func init() {
 	RubyVersions = append(RubyVersions, getRubyVersions()...)
 
 	if len(RubyVersions) == 1 {
-		fmt.Fprintln(os.Stderr, "rbenv not detected, falling back to system ruby ONLY. Please ensure that bundler is installed and available in your path.")
+		log.Debug("rbenv not detected, falling back to system ruby ONLY. Please ensure that bundler is installed and available in your path.")
 		return
 	}
 
