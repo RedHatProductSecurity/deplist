@@ -16,7 +16,6 @@ var RubyVersions []string = []string{"system"}
 
 func init() {
 	RubyVersions = append(RubyVersions, getRubyVersions()...)
-	fmt.Fprintln(os.Stderr, RubyVersions)
 
 	if len(RubyVersions) == 1 {
 		fmt.Fprintln(os.Stderr, "rbenv not detected, falling back to system ruby ONLY. Please ensure that bundler is installed and available in your path.")
