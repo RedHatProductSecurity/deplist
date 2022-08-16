@@ -55,11 +55,6 @@ func setRubyVersion(version string, cmd *exec.Cmd) {
 	cmd.Env = append(cmd.Env, "RBENV_VERSION="+version)
 }
 
-// GetRubyDeps calls GetRubyDepsWithVersion with the system ruby version
-func GetRubyDeps(path string) (map[string]string, error) {
-	return GetRubyDepsWithVersion(path, 0)
-}
-
 // GetRubyDepsWithVersion uses `bundle list` to list ruby dependencies when a Gemfile.lock file exists
 func GetRubyDepsWithVersion(path string, version int) (map[string]string, error) {
 	if version >= len(RubyVersions) {
@@ -74,15 +69,6 @@ func GetRubyDepsWithVersion(path string, version int) (map[string]string, error)
 	gathered := make(map[string]string)
 
 	dirPath := filepath.Dir(path)
-
-	// override the gem path otherwise might hit perm issues and it's annoying
-	gemPath, err := os.MkdirTemp("", "gem_vendor")
-	if err != nil {
-		return nil, err
-	}
-
-	// cleanup after ourselves
-	defer os.RemoveAll(gemPath)
 
 	//Make sure that the Gemfile we are loading is supported by the version of bundle currently installed.
 	cmd := exec.Command("bundle", "update", "--bundler")
@@ -99,6 +85,7 @@ func GetRubyDepsWithVersion(path string, version int) (map[string]string, error)
 
 	cmd.Dir = dirPath
 	cmd.Env = append(cmd.Env, "BUNDLE_PATH="+gemPath)
+
 	setRubyVersion(RubyVersions[version], cmd)
 
 	data, err = cmd.Output()
