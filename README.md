@@ -21,6 +21,9 @@ On Fedora:
 $ dnf install golang-bin yarnpkg maven rubygem-bundler ruby-devel gcc gcc-c++ npm
 ```
 
+
+Also supports `rbenv`. Any ruby versions installed with `rbenv` will be used as backups from starting with system ruby (if available), and then from newest to oldest.
+
 ## Command Line
 
 ### Build from source
