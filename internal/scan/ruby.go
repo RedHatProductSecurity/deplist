@@ -55,6 +55,11 @@ func setRubyVersion(version string, cmd *exec.Cmd) {
 	cmd.Env = append(cmd.Env, "RBENV_VERSION="+version)
 }
 
+// GetRubyDeps calls GetRubyDepsWithVersion with the system ruby version
+func GetRubyDeps(path string) (map[string]string, error) {
+	return GetRubyDepsWithVersion(path, 0)
+}
+
 // GetRubyDepsWithVersion uses `bundle list` to list ruby dependencies when a Gemfile.lock file exists
 func GetRubyDepsWithVersion(path string, version int) (map[string]string, error) {
 	if version >= len(RubyVersions) {
