@@ -22,7 +22,7 @@ func main() {
 	}
 
 	if *rubyDebug == true {
-		fmt.Printf("installed ruby versions: %+v", scan.GetRubyVersions())
+		fmt.Printf("installed ruby versions: %+v", scan.GetInstalledRubyVersions())
 	}
 
 	if flag.Args() == nil || len(flag.Args()) == 0 {
