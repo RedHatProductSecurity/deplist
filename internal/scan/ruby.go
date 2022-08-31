@@ -55,6 +55,24 @@ func setRubyVersion(version string, cmd *exec.Cmd) {
 
 // GetRubyDeps calls GetRubyDepsWithVersion with the system ruby version
 func GetRubyDeps(path string) (map[string]string, error) {
+	RubyVersions = append(RubyVersions, getRubyVersions()...)
+
+	if len(RubyVersions) == 1 {
+		log.Debug("rbenv not detected, falling back to system ruby ONLY. Please ensure that bundler is installed and available in your path.")
+		return nil, nil
+	}
+
+	log.Debugf("Ruby versions detected: %+v\n", RubyVersions)
+
+	for _, version := range RubyVersions {
+		cmd := exec.Command("gem", "install", "bundler")
+		setRubyVersion(version, cmd)
+		data, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Debugf("couldn't install bundler: %v", string(data))
+		}
+		log.Debugf("Installed bundler for ruby %v\n", version)
+	}
 	return GetRubyDepsWithVersion(path, 0)
 }
 
