@@ -14,27 +14,6 @@ import (
 
 var RubyVersions []string = []string{"system"}
 
-// func init() {
-// 	RubyVersions = append(RubyVersions, GetRubyVersions()...)
-
-// 	if len(RubyVersions) == 1 {
-// 		log.Debug("rbenv not detected, falling back to system ruby ONLY. Please ensure that bundler is installed and available in your path.")
-// 		return
-// 	}
-
-// 	log.Debugf("Ruby versions detected: %+v\n", RubyVersions)
-
-// 	for _, version := range RubyVersions {
-// 		cmd := exec.Command("gem", "install", "bundler")
-// 		setRubyVersion(version, cmd)
-// 		data, err := cmd.CombinedOutput()
-// 		if err != nil {
-// 			log.Debugf("couldn't install bundler: %v", string(data))
-// 		}
-// 		log.Debugf("Installed bundler for ruby %v\n", version)
-// 	}
-// }
-
 func GetRubyVersions() []string {
 	cmd := exec.Command("rbenv", "versions", "--bare")
 	data, err := cmd.Output()
@@ -79,6 +58,7 @@ func GetRubyDeps(path string) (map[string]string, error) {
 		}
 		log.Debugf("Installed bundler for ruby %v\n", version)
 	}
+
 	return GetRubyDepsWithVersion(path, 0)
 }
 
