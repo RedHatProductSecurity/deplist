@@ -2,6 +2,7 @@ package scan
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,33 +14,35 @@ import (
 
 var RubyVersions []string = []string{"system"}
 
-func init() {
-	RubyVersions = append(RubyVersions, getRubyVersions()...)
+// func init() {
+// 	RubyVersions = append(RubyVersions, GetRubyVersions()...)
 
-	if len(RubyVersions) == 1 {
-		log.Debug("rbenv not detected, falling back to system ruby ONLY. Please ensure that bundler is installed and available in your path.")
-		return
-	}
+// 	if len(RubyVersions) == 1 {
+// 		log.Debug("rbenv not detected, falling back to system ruby ONLY. Please ensure that bundler is installed and available in your path.")
+// 		return
+// 	}
 
-	log.Debugf("Ruby versions detected: %+v\n", RubyVersions)
+// 	log.Debugf("Ruby versions detected: %+v\n", RubyVersions)
 
-	for _, version := range RubyVersions {
-		cmd := exec.Command("gem", "install", "bundler")
-		setRubyVersion(version, cmd)
-		data, err := cmd.CombinedOutput()
-		if err != nil {
-			log.Debugf("couldn't install bundler: %v", string(data))
-		}
-		log.Debugf("Installed bundler for ruby %v\n", version)
-	}
-}
+// 	for _, version := range RubyVersions {
+// 		cmd := exec.Command("gem", "install", "bundler")
+// 		setRubyVersion(version, cmd)
+// 		data, err := cmd.CombinedOutput()
+// 		if err != nil {
+// 			log.Debugf("couldn't install bundler: %v", string(data))
+// 		}
+// 		log.Debugf("Installed bundler for ruby %v\n", version)
+// 	}
+// }
 
-func getRubyVersions() []string {
+func GetRubyVersions() []string {
 	cmd := exec.Command("rbenv", "versions", "--bare")
 	data, err := cmd.Output()
 	if err != nil {
 		return nil
 	}
+
+	log.Debugf("data:%+v\nerr:%+v\n", data, err)
 
 	versions := strings.Split(string(data), "\n")
 	versions = versions[:len(versions)-1]
@@ -55,7 +58,10 @@ func setRubyVersion(version string, cmd *exec.Cmd) {
 
 // GetRubyDeps calls GetRubyDepsWithVersion with the system ruby version
 func GetRubyDeps(path string) (map[string]string, error) {
-	RubyVersions = append(RubyVersions, getRubyVersions()...)
+	versions := GetRubyVersions()
+	RubyVersions = append(RubyVersions, versions...)
+
+	fmt.Println(RubyVersions)
 
 	if len(RubyVersions) == 1 {
 		log.Debug("rbenv not detected, falling back to system ruby ONLY. Please ensure that bundler is installed and available in your path.")

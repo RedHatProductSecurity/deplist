@@ -1,4 +1,4 @@
-module github.com/cebarks/deplist
+module github.com/RedHatProductSecurity/deplist
 
 go 1.17
 
