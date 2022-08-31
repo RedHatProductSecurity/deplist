@@ -2,7 +2,6 @@ package scan
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,18 +13,22 @@ import (
 
 var RubyVersions []string = []string{"system"}
 
-func GetRubyVersions() []string {
+func GetInstalledRubyVersions() []string {
 	cmd := exec.Command("rbenv", "versions", "--bare")
 	data, err := cmd.Output()
 	if err != nil {
 		return nil
 	}
 
-	log.Debugf("data:%+v\nerr:%+v\n", data, err)
-
 	versions := strings.Split(string(data), "\n")
 	versions = versions[:len(versions)-1]
 	sort.Sort(sort.Reverse(sort.StringSlice(versions)))
+
+	RubyVersions = append(RubyVersions, versions...)
+
+	if len(RubyVersions) == 1 {
+		log.Debug("rbenv not detected, falling back to system ruby ONLY. Please ensure that bundler is installed and available in your path.")
+	}
 
 	return versions
 }
@@ -37,16 +40,6 @@ func setRubyVersion(version string, cmd *exec.Cmd) {
 
 // GetRubyDeps calls GetRubyDepsWithVersion with the system ruby version
 func GetRubyDeps(path string) (map[string]string, error) {
-	versions := GetRubyVersions()
-	RubyVersions = append(RubyVersions, versions...)
-
-	fmt.Println(RubyVersions)
-
-	if len(RubyVersions) == 1 {
-		log.Debug("rbenv not detected, falling back to system ruby ONLY. Please ensure that bundler is installed and available in your path.")
-		return nil, nil
-	}
-
 	log.Debugf("Ruby versions detected: %+v\n", RubyVersions)
 
 	for _, version := range RubyVersions {
@@ -64,13 +57,15 @@ func GetRubyDeps(path string) (map[string]string, error) {
 
 // GetRubyDepsWithVersion uses `bundle list` to list ruby dependencies when a Gemfile.lock file exists
 func GetRubyDepsWithVersion(path string, version int) (map[string]string, error) {
-	if version != 0 {
-		log.Debug("retrying...")
-	}
 	if version >= len(RubyVersions) {
 		log.Debug("GetRubyDeps Failed! No more ruby versions available")
 		return nil, errors.New("GetRubyDeps Failed: all ruby versions failed " + path)
 	}
+
+	if version != 0 {
+		log.Debug("retrying...")
+	}
+
 	log.Debugf("GetRubyDeps(%v) %s", RubyVersions[version], path)
 
 	gathered := make(map[string]string)
