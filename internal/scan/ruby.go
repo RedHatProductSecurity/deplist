@@ -65,7 +65,7 @@ func GetRubyDepsWithVersion(path string, version int) (map[string]string, error)
 	}
 
 	if version != 0 {
-		log.Debug("retrying...")
+		log.Debugf("retrying with %s...", RubyVersions[version])
 	}
 
 	log.Debugf("GetRubyDeps(%v) %s", RubyVersions[version], path)
