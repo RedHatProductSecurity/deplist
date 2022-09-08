@@ -40,16 +40,18 @@ func setRubyVersion(version string, cmd *exec.Cmd) {
 
 // GetRubyDeps calls GetRubyDepsWithVersion with the system ruby version
 func GetRubyDeps(path string) (map[string]string, error) {
-	log.Debugf("Ruby versions detected: %+v\n", RubyVersions)
+	if len(RubyVersions) != 1 {
+		log.Debugf("Ruby versions detected: %+v\n", RubyVersions)
 
-	for _, version := range RubyVersions {
-		cmd := exec.Command("gem", "install", "bundler")
-		setRubyVersion(version, cmd)
-		data, err := cmd.CombinedOutput()
-		if err != nil {
-			log.Debugf("couldn't install bundler: %v", string(data))
+		for _, version := range RubyVersions {
+			cmd := exec.Command("gem", "install", "bundler")
+			setRubyVersion(version, cmd)
+			data, err := cmd.CombinedOutput()
+			if err != nil {
+				log.Debugf("couldn't install bundler: %v", string(data))
+			}
+			log.Debugf("Installed bundler for ruby %v\n", version)
 		}
-		log.Debugf("Installed bundler for ruby %v\n", version)
 	}
 
 	return GetRubyDepsWithVersion(path, 0)
