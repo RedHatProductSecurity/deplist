@@ -40,6 +40,8 @@ func setRubyVersion(version string, cmd *exec.Cmd) {
 
 // GetRubyDeps calls GetRubyDepsWithVersion with the system ruby version
 func GetRubyDeps(path string) (map[string]string, error) {
+	GetInstalledRubyVersions()
+
 	if len(RubyVersions) != 1 {
 		log.Debugf("Ruby versions detected: %+v\n", RubyVersions)
 
@@ -59,6 +61,10 @@ func GetRubyDeps(path string) (map[string]string, error) {
 
 // GetRubyDepsWithVersion uses `bundle list` to list ruby dependencies when a Gemfile.lock file exists
 func GetRubyDepsWithVersion(path string, version int) (map[string]string, error) {
+	if version == -1 {
+		return nil, errors.New("GetRubyDeps Failed: there's no actual gemfile!")
+	}
+
 	if version >= len(RubyVersions) {
 		log.Debug("GetRubyDeps Failed! No more ruby versions available")
 		return nil, errors.New("GetRubyDeps Failed: all ruby versions failed " + path)
@@ -105,7 +111,6 @@ func GetRubyDepsWithVersion(path string, version int) (map[string]string, error)
 
 	data, err = cmd.Output()
 	if err != nil {
-
 		if version == len(RubyVersions) {
 			log.Debugf("err: %v", err)
 			log.Debugf("data: %v", string(data))

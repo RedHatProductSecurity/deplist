@@ -13,15 +13,11 @@ import (
 func main() {
 	deptypePtr := flag.Int("deptype", -1, "golang, nodejs, python etc")
 	debugPtr := flag.Bool("debug", false, "debug logging (default false)")
-	rubyDebug := flag.Bool("rbdebug", false, "ruby version output and then quit")
 
 	flag.Parse()
 
 	if *debugPtr == true {
 		log.SetLevel(log.DebugLevel)
-	}
-
-	if *rubyDebug == true {
 		fmt.Printf("installed ruby versions: %+v", scan.GetInstalledRubyVersions())
 	}
 
