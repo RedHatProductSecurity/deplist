@@ -329,3 +329,7 @@ func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
 
 	return deps, foundTypes, err
 }
+
+func GetInstalledRubyVersions() []string {
+	return scan.GetInstalledRubyVersions()
+}

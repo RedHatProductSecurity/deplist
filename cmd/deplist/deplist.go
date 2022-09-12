@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/RedHatProductSecurity/deplist"
+	"github.com/RedHatProductSecurity/deplist/internal/scan"
 	purl "github.com/mcoops/packageurl-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,6 +18,7 @@ func main() {
 
 	if *debugPtr == true {
 		log.SetLevel(log.DebugLevel)
+		fmt.Printf("installed ruby versions: %+v", scan.GetInstalledRubyVersions())
 	}
 
 	if flag.Args() == nil || len(flag.Args()) == 0 {
