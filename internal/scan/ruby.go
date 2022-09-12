@@ -18,6 +18,7 @@ func GetInstalledRubyVersions() []string {
 	data, err := cmd.Output()
 	if err != nil {
 		log.Errorf("error detecting rbenv versions: %v", err)
+		return RubyVersions
 	}
 
 	versions := strings.Split(string(data), "\n")
