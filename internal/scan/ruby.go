@@ -15,6 +15,7 @@ var RubyVersions []string = []string{"system"}
 
 func GetInstalledRubyVersions() []string {
 	cmd := exec.Command("rbenv", "versions", "--bare")
+	cmd.Env = os.Environ()
 	data, err := cmd.Output()
 	if err != nil {
 		log.Errorf("error detecting rbenv versions: %v", err)
