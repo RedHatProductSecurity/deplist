@@ -94,8 +94,8 @@ func GetRubyDepsWithVersion(path string, version int) (map[string]string, error)
 	//Make sure that the Gemfile we are loading is supported by the version of bundle currently installed.
 	cmd := exec.Command("bundle", "update", "--bundler")
 	cmd.Dir = dirPath
-	cmd.Env = append(cmd.Env, "BUNDLE_PATH="+gemPath)
 	setRubyVersion(RubyVersions[version], cmd)
+	cmd.Env = append(cmd.Env, "BUNDLE_PATH="+gemPath)
 
 	data, err := cmd.CombinedOutput()
 	if err != nil {
@@ -105,11 +105,9 @@ func GetRubyDepsWithVersion(path string, version int) (map[string]string, error)
 	}
 
 	cmd = exec.Command("bundle", "list")
-
 	cmd.Dir = dirPath
-	cmd.Env = append(cmd.Env, "BUNDLE_PATH="+gemPath)
-
 	setRubyVersion(RubyVersions[version], cmd)
+	cmd.Env = append(cmd.Env, "BUNDLE_PATH="+gemPath)
 
 	data, err = cmd.Output()
 	if err != nil {
