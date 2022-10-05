@@ -22,6 +22,9 @@ func GetInstalledRubyVersions() []string {
 		return RubyVersions
 	}
 
+	// reset to default so that we don't add the same versions again
+	RubyVersions = []string{"system"}
+
 	versions := strings.Split(string(data), "\n")
 	versions = versions[:len(versions)-1]
 	sort.Sort(sort.Reverse(sort.StringSlice(versions)))
