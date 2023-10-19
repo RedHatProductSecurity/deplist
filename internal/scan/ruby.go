@@ -56,9 +56,11 @@ func runGemlockParser(lockPath string) (map[string]string, error) {
 		log.Errorf("Could not write ruby script to %s: %s", g.Name(), err)
 		return gathered, err
 	}
-	args := []string{g.Name(), lockPath}
-	log.Debugf("Running ruby %v", args)
-	cmd := exec.Command("ruby", args...)
+	dir := filepath.Dir(lockPath)
+	name := filepath.Base(lockPath)
+	args := []string{fmt.Sprintf("--chdir=%s", dir), "ruby", g.Name(), name}
+	log.Debugf("Running env %v", args)
+	cmd := exec.Command("env", args...)
 	data, err := cmd.Output()
 	if err != nil {
 		log.Errorf("Error running Gemfile.lock parser: %v: %s", err, string(data))
