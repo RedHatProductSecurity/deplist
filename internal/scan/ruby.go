@@ -1,136 +1,80 @@
 package scan
 
 import (
-	"errors"
+	"embed"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
 
-var RubyVersions []string = []string{"system"}
+const scriptName = "gemlock-parser.rb"
 
-func GetInstalledRubyVersions() []string {
-	cmd := exec.Command("rbenv", "versions", "--bare")
-	cmd.Env = os.Environ()
-	data, err := cmd.Output()
-	if err != nil {
-		log.Errorf("error detecting rbenv versions: %v", err)
-		return RubyVersions
-	}
+// just here to satisfy gofmt
+var assets embed.FS
 
-	// reset to default so that we don't add the same versions again
-	RubyVersions = []string{"system"}
+//go:embed gemlock-parser.rb
+var rubyScript []byte
 
-	versions := strings.Split(string(data), "\n")
-	versions = versions[:len(versions)-1]
-	sort.Sort(sort.Reverse(sort.StringSlice(versions)))
-
-	RubyVersions = append(RubyVersions, versions...)
-
-	if len(RubyVersions) == 1 {
-		log.Debug("rbenv not detected, falling back to system ruby ONLY. Please ensure that bundler is installed and available in your path.")
-	}
-
-	return versions
-}
-
-func setRubyVersion(version string, cmd *exec.Cmd) {
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "RBENV_VERSION="+version)
-}
-
-// GetRubyDeps calls GetRubyDepsWithVersion with the system ruby version
 func GetRubyDeps(path string) (map[string]string, error) {
-	GetInstalledRubyVersions()
+	log.Debugf("GetRubyDeps %s", path)
+	baseDir := filepath.Dir(path)
+	lockPath := filepath.Join(baseDir, "Gemfile.lock")
 
-	if len(RubyVersions) != 1 {
-		log.Debugf("Ruby versions detected: %+v\n", RubyVersions)
-
-		for _, version := range RubyVersions {
-			cmd := exec.Command("gem", "install", "bundler")
-			setRubyVersion(version, cmd)
+	if _, err := os.Stat(lockPath); err != nil {
+		if os.IsNotExist(err) {
+			log.Debugf("Creating %s with `bundle lock`", lockPath)
+			// Create Gemfile.lock
+			cmd := exec.Command("bundle", "lock")
 			data, err := cmd.CombinedOutput()
 			if err != nil {
-				log.Debugf("couldn't install bundler: %v", string(data))
+				log.Errorf("couldn't create %s: %v: %v", lockPath, err, string(data))
+				return nil, err
 			}
-			log.Debugf("Installed bundler for ruby %v\n", version)
-		}
-	}
-
-	return GetRubyDepsWithVersion(path, 0)
-}
-
-// GetRubyDepsWithVersion uses `bundle list` to list ruby dependencies when a Gemfile.lock file exists
-func GetRubyDepsWithVersion(path string, version int) (map[string]string, error) {
-	if version == -1 {
-		return nil, errors.New("GetRubyDeps Failed: there's no actual gemfile!")
-	}
-
-	if version >= len(RubyVersions) {
-		log.Debug("GetRubyDeps Failed! No more ruby versions available")
-		return nil, errors.New("GetRubyDeps Failed: all ruby versions failed " + path)
-	}
-
-	if version != 0 {
-		log.Debugf("retrying with %s...", RubyVersions[version])
-	}
-
-	log.Debugf("GetRubyDeps(%v) %s", RubyVersions[version], path)
-
-	gathered := make(map[string]string)
-
-	dirPath := filepath.Dir(path)
-
-	// override the gem path otherwise might hit perm issues and it's annoying
-	gemPath, err := os.MkdirTemp("", "gem_vendor")
-	if err != nil {
-		return nil, err
-	}
-
-	// cleanup after ourselves
-	defer os.RemoveAll(gemPath)
-
-	//Make sure that the Gemfile we are loading is supported by the version of bundle currently installed.
-	cmd := exec.Command("bundle", "update", "--bundler")
-	cmd.Dir = dirPath
-	setRubyVersion(RubyVersions[version], cmd)
-	cmd.Env = append(cmd.Env, "BUNDLE_PATH="+gemPath)
-
-	data, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Debugf("error: %s", err)
-		log.Debugf("error: %v", string(data))
-		return GetRubyDepsWithVersion(path, version+1)
-	}
-
-	cmd = exec.Command("bundle", "list")
-	cmd.Dir = dirPath
-	setRubyVersion(RubyVersions[version], cmd)
-	cmd.Env = append(cmd.Env, "BUNDLE_PATH="+gemPath)
-
-	data, err = cmd.Output()
-	if err != nil {
-		if version == len(RubyVersions) {
-			log.Debugf("err: %v", err)
-			log.Debugf("data: %v", string(data))
+			log.Debugf("Created %s", lockPath)
+		} else {
+			log.Errorf("Unexpected error: %v", err)
 			return nil, err
 		}
-		return GetRubyDepsWithVersion(path, version+1)
+	}
+	return runGemlockParser(lockPath)
+}
+
+func runGemlockParser(lockPath string) (map[string]string, error) {
+	gathered := make(map[string]string)
+
+	g, err := os.CreateTemp("", scriptName)
+	if err != nil {
+		log.Errorf("Could not create ruby script %s: %s", scriptName, err)
+		return gathered, err
+	}
+	err = os.WriteFile(g.Name(), rubyScript, 0644)
+	if err != nil {
+		log.Errorf("Could not write ruby script to %s: %s", g.Name(), err)
+		return gathered, err
+	}
+	args := []string{g.Name(), lockPath}
+	log.Debugf("Running ruby %v", args)
+	cmd := exec.Command("ruby", args...)
+	data, err := cmd.Output()
+	if err != nil {
+		log.Errorf("Error running Gemfile.lock parser: %v: %s", err, string(data))
+		return gathered, err
 	}
 
 	splitOutput := strings.Split(string(data), "\n")
 
 	for _, line := range splitOutput {
-		if !strings.HasPrefix(line, "  *") {
+		if line == "" {
 			continue
 		}
-		rawDep := strings.TrimPrefix(line, "  * ")
-		dep := strings.Split(rawDep, " ")
-		dep[1] = dep[1][1 : len(dep[1])-1]
+		dep := strings.Split(line, " ")
+		if len(dep) < 2 {
+			log.Debugf("Unexpected dependency: %v, skipping", dep)
+			continue
+		}
 		gathered[dep[0]] = dep[1]
 	}
 

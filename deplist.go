@@ -56,10 +56,33 @@ func GetLanguageStr(bm Bitmask) string {
 	return "unknown"
 }
 
+type Discovered struct {
+	deps       []Dependency
+	foundTypes Bitmask
+}
+
+func addPackagesToDeps(discovered Discovered, pkgs map[string]string, lang Bitmask) Discovered {
+	if len(pkgs) > 0 {
+		discovered.foundTypes.DepFoundAddFlag(lang)
+	}
+
+	for name, version := range pkgs {
+		discovered.deps = append(discovered.deps,
+			Dependency{
+				DepType: lang,
+				Path:    strings.TrimSuffix(name, "\n"),
+				Version: strings.Replace(version, "v", "", 1),
+				Files:   []string{},
+			})
+	}
+	return discovered
+}
+
 func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
-	// var deps DependencyList
-	var deps []Dependency
-	var foundTypes Bitmask = 0
+	var discovered Discovered
+	// special var so we don't double handle both repos with both
+	// a Gemfile and Gemfile.lock
+	var seenGemfile string
 
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		return nil, 0, os.ErrNotExist
@@ -69,7 +92,7 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 	goPath := filepath.Join(fullPath, "go.mod")
 	goPkgPath := filepath.Join(fullPath, "Gopkg.lock")
 	glidePath := filepath.Join(fullPath, "glide.lock")
-	rubyPath := filepath.Join(fullPath, "Gemfile.lock")
+	rubyPath := filepath.Join(fullPath, "Gemfile") // Later we translate Gemfile.lock -> Gemfile to handle both cases
 	pythonPath := filepath.Join(fullPath, "requirements.txt")
 
 	// point at the parent repo, but can't assume where the indicators will be
@@ -109,11 +132,11 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 				}
 
 				if len(pkgs) > 0 {
-					foundTypes.DepFoundAddFlag(LangNodeJS)
+					discovered.foundTypes.DepFoundAddFlag(LangNodeJS)
 				}
 
 				for _, p := range pkgs {
-					deps = append(deps,
+					discovered.deps = append(discovered.deps,
 						Dependency{
 							DepType: LangNodeJS,
 							Path:    p.Name,
@@ -149,7 +172,7 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 					if err == nil {
 
 						if len(pkgs) > 0 {
-							foundTypes.DepFoundAddFlag(LangJava)
+							discovered.foundTypes.DepFoundAddFlag(LangJava)
 						}
 
 						for name, version := range pkgs {
@@ -158,7 +181,7 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 
 							// if the dep ends with -javadoc or -sources, not really interested
 							if !strings.HasSuffix(version, "-javadoc") && !strings.HasSuffix(version, "-sources") {
-								deps = append(deps,
+								discovered.deps = append(discovered.deps,
 									Dependency{
 										DepType: LangJava,
 										Path:    name,
@@ -171,6 +194,10 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 				}
 			}
 
+			// translate Gemfile.lock -> Gemfile, to handle either case
+			// but also avoid double-handling, i.e. scanning once for each file
+			path = strings.Replace(path, "Gemfile.lock", "Gemfile", 1)
+
 			switch path {
 			case goPath: // just support the top level go.mod for now
 				pkgs, err := scan.GetGolangDeps(path)
@@ -179,7 +206,7 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 				}
 
 				if len(pkgs) > 0 {
-					foundTypes.DepFoundAddFlag(LangGolang)
+					discovered.foundTypes.DepFoundAddFlag(LangGolang)
 				}
 
 				for path, goPkg := range pkgs {
@@ -189,7 +216,7 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 						Files:   goPkg.Gofiles,
 						Version: goPkg.Version,
 					}
-					deps = append(deps, d)
+					discovered.deps = append(discovered.deps, d)
 				}
 			case goPkgPath:
 				pkgs, err := scan.GetGoPkgDeps(path)
@@ -198,7 +225,7 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 				}
 
 				if len(pkgs) > 0 {
-					foundTypes.DepFoundAddFlag(LangGolang)
+					discovered.foundTypes.DepFoundAddFlag(LangGolang)
 				}
 				for _, goPkg := range pkgs {
 					d := Dependency{
@@ -206,7 +233,7 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 						Path:    goPkg.Name,
 						Version: goPkg.Version,
 					}
-					deps = append(deps, d)
+					discovered.deps = append(discovered.deps, d)
 				}
 			case glidePath:
 				pkgs, err := scan.GetGlideDeps(path)
@@ -215,7 +242,7 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 				}
 
 				if len(pkgs) > 0 {
-					foundTypes.DepFoundAddFlag(LangGolang)
+					discovered.foundTypes.DepFoundAddFlag(LangGolang)
 				}
 				for _, goPkg := range pkgs {
 					d := Dependency{
@@ -223,7 +250,7 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 						Path:    goPkg.Name,
 						Version: goPkg.Version,
 					}
-					deps = append(deps, d)
+					discovered.deps = append(discovered.deps, d)
 				}
 			case pomPath:
 				pkgs, err := scan.GetMvnDeps(path)
@@ -231,57 +258,28 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 					return err
 				}
 
-				if len(pkgs) > 0 {
-					foundTypes.DepFoundAddFlag(LangJava)
+				discovered = addPackagesToDeps(discovered, pkgs, LangJava)
+			case rubyPath:
+				// To prevent double handling of both Gemfile and Gemfile.lock
+				// Earier we translate Gemfile.lock -> Gemfile
+				if path == seenGemfile {
+					break
 				}
 
-				for name, version := range pkgs {
-					deps = append(deps,
-						Dependency{
-							DepType: LangJava,
-							Path:    name,
-							Version: strings.Replace(version, "v", "", 1),
-							Files:   []string{},
-						})
-				}
-			case rubyPath:
 				pkgs, err := scan.GetRubyDeps(path)
 				if err != nil {
 					return err
 				}
 
-				if len(pkgs) > 0 {
-					foundTypes.DepFoundAddFlag(LangRuby)
-				}
-
-				for name, version := range pkgs {
-					deps = append(deps,
-						Dependency{
-							DepType: LangRuby,
-							Path:    strings.TrimSuffix(name, "\n"),
-							Version: strings.Replace(version, "v", "", 1),
-							Files:   []string{},
-						})
-				}
+				discovered = addPackagesToDeps(discovered, pkgs, LangRuby)
+				seenGemfile = path
 			case pythonPath:
 				pkgs, err := scan.GetPythonDeps(path)
 				if err != nil {
 					return err
 				}
 
-				if len(pkgs) > 0 {
-					foundTypes.DepFoundAddFlag(LangPython)
-				}
-
-				for name, version := range pkgs {
-					deps = append(deps,
-						Dependency{
-							DepType: LangPython,
-							Path:    name,
-							Version: version,
-							Files:   []string{},
-						})
-				}
+				discovered = addPackagesToDeps(discovered, pkgs, LangPython)
 			}
 
 		}
@@ -292,7 +290,7 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 		return nil, 0, err // should't matter
 	}
 
-	return deps, foundTypes, nil
+	return discovered.deps, discovered.foundTypes, nil
 }
 
 // findBaseDir walks a directory tree through empty subdirs til it finds a directory with content
@@ -328,8 +326,4 @@ func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
 	}
 
 	return deps, foundTypes, err
-}
-
-func GetInstalledRubyVersions() []string {
-	return scan.GetInstalledRubyVersions()
 }
