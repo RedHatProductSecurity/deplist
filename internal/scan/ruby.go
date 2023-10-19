@@ -2,6 +2,7 @@ package scan
 
 import (
 	"embed"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,7 +28,7 @@ func GetRubyDeps(path string) (map[string]string, error) {
 		if os.IsNotExist(err) {
 			log.Debugf("Creating %s with `bundle lock`", lockPath)
 			// Create Gemfile.lock
-			cmd := exec.Command("bundle", "lock")
+			cmd := exec.Command("env", fmt.Sprintf("--chdir=%s", baseDir), "bundle", "lock")
 			data, err := cmd.CombinedOutput()
 			if err != nil {
 				log.Errorf("couldn't create %s: %v: %v", lockPath, err, string(data))
