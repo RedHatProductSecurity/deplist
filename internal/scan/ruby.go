@@ -4,6 +4,7 @@ import (
 	"embed"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -19,27 +20,29 @@ var rubyScript []byte
 
 func GetRubyDeps(path string) (map[string]string, error) {
 	log.Debugf("GetRubyDeps %s", path)
+	baseDir := filepath.Dir(path)
+	lockPath := filepath.Join(baseDir, "Gemfile.lock")
 
-	if _, err := os.Stat("Gemfile.lock"); err != nil {
+	if _, err := os.Stat(lockPath); err != nil {
 		if os.IsNotExist(err) {
-			log.Debugf("Creating Gemfile.lock with `bundle lock`")
+			log.Debugf("Creating %s with `bundle lock`", lockPath)
 			// Create Gemfile.lock
 			cmd := exec.Command("bundle", "lock")
 			data, err := cmd.CombinedOutput()
 			if err != nil {
-				log.Errorf("couldn't create Gemfile.lock: %v: %v", err, string(data))
+				log.Errorf("couldn't create %s: %v: %v", lockPath, err, string(data))
 				return nil, err
 			}
-			log.Debugf("Created Gemfile.lock")
+			log.Debugf("Created %s", lockPath)
 		} else {
 			log.Errorf("Unexpected error: %v", err)
 			return nil, err
 		}
 	}
-	return runGemlockParser()
+	return runGemlockParser(lockPath)
 }
 
-func runGemlockParser() (map[string]string, error) {
+func runGemlockParser(lockPath string) (map[string]string, error) {
 	gathered := make(map[string]string)
 
 	g, err := os.CreateTemp("", scriptName)
@@ -52,10 +55,12 @@ func runGemlockParser() (map[string]string, error) {
 		log.Errorf("Could not write ruby script to %s: %s", g.Name(), err)
 		return gathered, err
 	}
-	cmd := exec.Command("ruby", g.Name())
+	args := []string{g.Name(), lockPath}
+	log.Debugf("Running ruby %v", args)
+	cmd := exec.Command("ruby", args...)
 	data, err := cmd.Output()
 	if err != nil {
-		log.Errorf("Error running Gemfile.lock parser:  %v", err)
+		log.Errorf("Error running Gemfile.lock parser: %v: %s", err, string(data))
 		return gathered, err
 	}
 
