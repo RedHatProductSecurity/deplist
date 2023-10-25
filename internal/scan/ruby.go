@@ -31,7 +31,8 @@ func GetRubyDeps(path string) (map[string]string, error) {
 			cmd := exec.Command("env", fmt.Sprintf("--chdir=%s", baseDir), "bundle", "lock")
 			data, err := cmd.CombinedOutput()
 			if err != nil {
-				log.Errorf("couldn't create %s: %v: %v", lockPath, err, string(data))
+				log.Errorf("couldn't create %s: %v", lockPath, err)
+				log.Debugf("bundle lock output: %v", string(data))
 				return nil, err
 			}
 			log.Debugf("Created %s", lockPath)
