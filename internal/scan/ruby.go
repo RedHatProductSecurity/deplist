@@ -1,12 +1,14 @@
 package scan
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -28,7 +30,9 @@ func GetRubyDeps(path string) (map[string]string, error) {
 		if os.IsNotExist(err) {
 			log.Debugf("Creating %s with `bundle lock`", lockPath)
 			// Create Gemfile.lock
-			cmd := exec.Command("env", fmt.Sprintf("--chdir=%s", baseDir), "bundle", "lock")
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(300)*time.Second)
+			defer cancel()
+			cmd := exec.CommandContext(ctx, "env", fmt.Sprintf("--chdir=%s", baseDir), "bundle", "lock")
 			data, err := cmd.CombinedOutput()
 			if err != nil {
 				log.Errorf("couldn't create %s: %v", lockPath, err)
@@ -52,6 +56,7 @@ func runGemlockParser(lockPath string) (map[string]string, error) {
 		log.Errorf("Could not create ruby script %s: %s", scriptName, err)
 		return gathered, err
 	}
+	defer os.Remove(g.Name())
 	err = os.WriteFile(g.Name(), rubyScript, 0644)
 	if err != nil {
 		log.Errorf("Could not write ruby script to %s: %s", g.Name(), err)
