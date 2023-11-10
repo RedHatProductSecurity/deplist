@@ -45,7 +45,7 @@ func GetRubyDeps(path string) (map[string]string, error) {
 	for _, e := range entries {
 		filename := e.Name()
 		if strings.HasSuffix(filename, ".gemspec") {
-			gemspec = filename
+			gemspec = filepath.Join(baseDir, filename)
 			break
 		}
 	}
