@@ -2,7 +2,7 @@ package scan
 
 import (
 	"context"
-	"embed"
+	_ "embed"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,17 +13,48 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const scriptName = "gemlock-parser.rb"
-
-// just here to satisfy gofmt
-var assets embed.FS
-
 //go:embed gemlock-parser.rb
-var rubyScript []byte
+var gemlockScriptData []byte
+
+//go:embed gemspec-parser.rb
+var gemSpecScriptData []byte
+
+type Script struct {
+	Name string
+	Data []byte
+}
+
+var gemLockParser = Script{
+	Name: "gemlock-parser.rb",
+	Data: gemlockScriptData,
+}
+
+var gemSpecParser = Script{
+	Name: "gemspec-parser.rb",
+	Data: gemSpecScriptData,
+}
 
 func GetRubyDeps(path string) (map[string]string, error) {
 	log.Debugf("GetRubyDeps %s", path)
 	baseDir := filepath.Dir(path)
+	entries, err := os.ReadDir(baseDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var gemspec string
+	for _, e := range entries {
+		filename := e.Name()
+		if strings.HasSuffix(filename, ".gemspec") {
+			gemspec = filename
+			break
+		}
+	}
+
+	if gemspec != "" {
+		log.Debugf("Found %s, parsing", gemspec)
+		return runRubyParser(gemSpecParser, gemspec)
+	}
+
 	lockPath := filepath.Join(baseDir, "Gemfile.lock")
 
 	if _, err := os.Stat(lockPath); err != nil {
@@ -45,19 +76,19 @@ func GetRubyDeps(path string) (map[string]string, error) {
 			return nil, err
 		}
 	}
-	return runGemlockParser(lockPath)
+	return runRubyParser(gemLockParser, lockPath)
 }
 
-func runGemlockParser(lockPath string) (map[string]string, error) {
+func runRubyParser(script Script, lockPath string) (map[string]string, error) {
 	gathered := make(map[string]string)
 
-	g, err := os.CreateTemp("", scriptName)
+	g, err := os.CreateTemp("", script.Name)
 	if err != nil {
-		log.Errorf("Could not create ruby script %s: %s", scriptName, err)
+		log.Errorf("Could not create ruby script %s: %s", script.Name, err)
 		return gathered, err
 	}
 	defer os.Remove(g.Name())
-	err = os.WriteFile(g.Name(), rubyScript, 0644)
+	err = os.WriteFile(g.Name(), script.Data, 0644)
 	if err != nil {
 		log.Errorf("Could not write ruby script to %s: %s", g.Name(), err)
 		return gathered, err
@@ -69,7 +100,7 @@ func runGemlockParser(lockPath string) (map[string]string, error) {
 	cmd := exec.Command("env", args...)
 	data, err := cmd.Output()
 	if err != nil {
-		log.Errorf("Error running Gemfile.lock parser: %v: %s", err, string(data))
+		log.Errorf("Error running %s: %v: %s", script.Name, err, string(data))
 		return gathered, err
 	}
 
@@ -80,7 +111,10 @@ func runGemlockParser(lockPath string) (map[string]string, error) {
 			continue
 		}
 		dep := strings.Split(line, " ")
-		if len(dep) < 2 {
+		if len(dep) == 1 && dep[0] != "" {
+			// no version found for this dep
+			dep = append(dep, "")
+		} else if len(dep) < 2 {
 			log.Debugf("Unexpected dependency: %v, skipping", dep)
 			continue
 		}
