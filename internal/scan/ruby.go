@@ -13,8 +13,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//go:embed gemlock-parser.rb
-var gemlockScriptData []byte
+//go:embed gemfile-parser.rb
+var gemfileScriptData []byte
 
 //go:embed gemspec-parser.rb
 var gemSpecScriptData []byte
@@ -24,9 +24,9 @@ type Script struct {
 	Data []byte
 }
 
-var gemLockParser = Script{
-	Name: "gemlock-parser.rb",
-	Data: gemlockScriptData,
+var gemFileParser = Script{
+	Name: "gemfile-parser.rb",
+	Data: gemfileScriptData,
 }
 
 var gemSpecParser = Script{
@@ -68,18 +68,16 @@ func GetRubyDeps(path string) (map[string]string, error) {
 			if err != nil {
 				log.Errorf("couldn't create %s: %v", lockPath, err)
 				log.Debugf("bundle lock output: %v", string(data))
-				return nil, err
 			}
 			log.Debugf("Created %s", lockPath)
 		} else {
 			log.Errorf("Unexpected error: %v", err)
-			return nil, err
 		}
 	}
-	return runRubyParser(gemLockParser, lockPath)
+	return runRubyParser(gemFileParser, baseDir)
 }
 
-func runRubyParser(script Script, lockPath string) (map[string]string, error) {
+func runRubyParser(script Script, target string) (map[string]string, error) {
 	gathered := make(map[string]string)
 
 	g, err := os.CreateTemp("", script.Name)
@@ -93,8 +91,8 @@ func runRubyParser(script Script, lockPath string) (map[string]string, error) {
 		log.Errorf("Could not write ruby script to %s: %s", g.Name(), err)
 		return gathered, err
 	}
-	dir := filepath.Dir(lockPath)
-	name := filepath.Base(lockPath)
+	dir := filepath.Dir(target)
+	name := filepath.Base(target)
 	args := []string{fmt.Sprintf("--chdir=%s", dir), "ruby", g.Name(), name}
 	log.Debugf("Running env %v", args)
 	cmd := exec.Command("env", args...)
