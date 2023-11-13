@@ -52,7 +52,7 @@ func GetRubyDeps(path string) (map[string]string, error) {
 
 	if gemspec != "" {
 		log.Debugf("Found %s, parsing", gemspec)
-		return runRubyParser(gemSpecParser, gemspec)
+		return runRubyParser(gemSpecParser, gemspec, baseDir)
 	}
 
 	lockPath := filepath.Join(baseDir, "Gemfile.lock")
@@ -66,18 +66,19 @@ func GetRubyDeps(path string) (map[string]string, error) {
 			cmd := exec.CommandContext(ctx, "env", fmt.Sprintf("--chdir=%s", baseDir), "bundle", "lock")
 			data, err := cmd.CombinedOutput()
 			if err != nil {
-				log.Errorf("couldn't create %s: %v", lockPath, err)
+				log.Debugf("couldn't create %s: %v", lockPath, err)
 				log.Debugf("bundle lock output: %v", string(data))
 			}
 			log.Debugf("Created %s", lockPath)
 		} else {
 			log.Errorf("Unexpected error: %v", err)
+			return nil, err
 		}
 	}
-	return runRubyParser(gemFileParser, baseDir)
+	return runRubyParser(gemFileParser, ".", baseDir)
 }
 
-func runRubyParser(script Script, target string) (map[string]string, error) {
+func runRubyParser(script Script, arg string, dir string) (map[string]string, error) {
 	gathered := make(map[string]string)
 
 	g, err := os.CreateTemp("", script.Name)
@@ -91,9 +92,8 @@ func runRubyParser(script Script, target string) (map[string]string, error) {
 		log.Errorf("Could not write ruby script to %s: %s", g.Name(), err)
 		return gathered, err
 	}
-	dir := filepath.Dir(target)
-	name := filepath.Base(target)
-	args := []string{fmt.Sprintf("--chdir=%s", dir), "ruby", g.Name(), name}
+
+	args := []string{fmt.Sprintf("--chdir=%s", dir), "ruby", g.Name(), arg}
 	log.Debugf("Running env %v", args)
 	cmd := exec.Command("env", args...)
 	data, err := cmd.Output()
