@@ -21,9 +21,6 @@ On Fedora:
 $ dnf install golang-bin yarnpkg maven rubygem-bundler ruby-devel gcc gcc-c++ npm
 ```
 
-
-Also supports `rbenv`. Any ruby versions installed with `rbenv` will be used as backups from starting with system ruby (if available), and then from newest to oldest.
-
 ## Command Line
 
 ### Build from source
@@ -41,6 +38,19 @@ pkg:npm/d3-scale-chromatic@2.0.0
 pkg:npm/d3-time@2.0.0
 pkg:npm/prop-types@15.7.2
 pkg:npm/react@16.13.1
+...
+```
+
+Verbose/debug output:
+
+```bash
+ deplist -debug ./test/testRepo/
+DEBU[0000] Checking ./test/testRepo/
+DEBU[0000] GetRubyDeps test/testRepo/Gemfile
+DEBU[0000] Running env [--chdir=test/testRepo ruby /tmp/gemfile-parser.rb927489446 .]
+DEBU[0000] GetGoPkgDeps test/testRepo/Gopkg.lock
+DEBU[0000] GetGlideDeps test/testRepo/glide.lock
+DEBU[0000] GetGolangDeps test/testRepo/go.mod
 ...
 ```
 

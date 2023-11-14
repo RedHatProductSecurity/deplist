@@ -101,6 +101,10 @@ func runGoList(path string) ([]byte, error) {
 			}
 		}
 		if err != nil {
+			log.Debug("Retrying `go list` with `-mod=readonly` flag")
+			out, err = runCmd(path, "-mod=readonly")
+		}
+		if err != nil {
 			log.Debug("Retrying `go list` with `-e` flag")
 			out, err = runCmd(path, "-e")
 			if err != nil {
