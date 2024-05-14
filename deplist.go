@@ -103,16 +103,32 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 		}
 
 		if info.IsDir() {
-			// prevent walking down the vendors, docs, etc
+			// prevent walking down the docs, .git, tests, etc.
 			if utils.BelongsToIgnoreList(info.Name()) {
 				return filepath.SkipDir
 			}
 		} else {
 			// Two checks, one for filenames and the second switch for full
 			// paths. Useful if we're looking for top of repo
-
 			switch filename := info.Name(); filename {
 			// for now only go for yarn and npm
+			case "package.json":
+				pkg, err := scan.GetNodeJSPackage(path)
+				if err != nil {
+					log.Debugf("failed to scan for nodejs package: %s", path)
+					return nil
+				}
+
+				foundTypes.DepFoundAddFlag(LangNodeJS)
+
+				deps = append(deps,
+					Dependency{
+						DepType:   LangNodeJS,
+						Path:      pkg.Name,
+						Version:   pkg.Version,
+						Files:     []string{},
+						IsBundled: true,
+					})
 			case "package-lock.json":
 				// if theres not a yarn.lock fall thru
 				if _, err := os.Stat(
@@ -183,10 +199,11 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 							if !strings.HasSuffix(version, "-javadoc") && !strings.HasSuffix(version, "-sources") {
 								discovered.deps = append(discovered.deps,
 									Dependency{
-										DepType: LangJava,
-										Path:    name,
-										Version: version,
-										Files:   []string{},
+										DepType:   LangJava,
+										Path:      name,
+										Version:   version,
+										Files:     []string{},
+										IsBundled: true,
 									})
 							}
 						}
@@ -211,10 +228,11 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 
 				for path, goPkg := range pkgs {
 					d := Dependency{
-						DepType: LangGolang,
-						Path:    path,
-						Files:   goPkg.Gofiles,
-						Version: goPkg.Version,
+						DepType:   LangGolang,
+						Path:      path,
+						Files:     goPkg.Gofiles,
+						Version:   goPkg.Version,
+						IsBundled: true,
 					}
 					discovered.deps = append(discovered.deps, d)
 				}
@@ -229,9 +247,10 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 				}
 				for _, goPkg := range pkgs {
 					d := Dependency{
-						DepType: LangGolang,
-						Path:    goPkg.Name,
-						Version: goPkg.Version,
+						DepType:   LangGolang,
+						Path:      goPkg.Name,
+						Version:   goPkg.Version,
+						IsBundled: true,
 					}
 					discovered.deps = append(discovered.deps, d)
 				}
@@ -246,9 +265,10 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 				}
 				for _, goPkg := range pkgs {
 					d := Dependency{
-						DepType: LangGolang,
-						Path:    goPkg.Name,
-						Version: goPkg.Version,
+						DepType:   LangGolang,
+						Path:      goPkg.Name,
+						Version:   goPkg.Version,
+						IsBundled: true,
 					}
 					discovered.deps = append(discovered.deps, d)
 				}

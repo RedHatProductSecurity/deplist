@@ -3,6 +3,7 @@ package scan
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -25,6 +26,10 @@ type yarnOutput struct {
 	}
 }
 
+type packageJsonFormat struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
 type npmDependency struct {
 	Version      string                   `json:"version"`
 	Dependencies map[string]npmDependency `json:"dependencies"`
@@ -119,6 +124,25 @@ func GetNodeJSDeps(path string) (map[string]NodeJSGather, error) {
 		return getNPMDeps(path)
 	}
 	return nil, fmt.Errorf("unknown NodeJS dependency file %q", path)
+}
+
+func GetNodeJSPackage(path string) (NodeJSGather, error) {
+	log.Debugf("GetNodeJSPackage %s", path)
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return NodeJSGather{}, err
+	}
+
+	var packageJson packageJsonFormat
+	err = json.Unmarshal(data, &packageJson)
+	if err != nil {
+		return NodeJSGather{}, err
+	}
+	if packageJson.Name == "" {
+		return NodeJSGather{}, fmt.Errorf("Empty package")
+	}
+	return NodeJSGather{Name: packageJson.Name, Version: packageJson.Version}, nil
 }
 
 func getYarnDeps(path string) (map[string]NodeJSGather, error) {

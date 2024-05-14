@@ -9,8 +9,6 @@ import (
 func BelongsToIgnoreList(needle string) bool {
 	switch needle {
 	case
-		"node_modules",
-		"vendor",
 		"scripts",
 		"docs",
 		"test",
