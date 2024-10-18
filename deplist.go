@@ -2,7 +2,6 @@ package deplist
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -40,22 +39,6 @@ func init() {
 	}
 }
 
-// GetLanguageStr returns from a bitmask return the ecosystem name
-func GetLanguageStr(bm Bitmask) string {
-	if bm&LangGolang != 0 {
-		return "go"
-	} else if bm&LangJava != 0 {
-		return "mvn"
-	} else if bm&LangNodeJS != 0 {
-		return "npm"
-	} else if bm&LangPython != 0 {
-		return "pypi"
-	} else if bm&LangRuby != 0 {
-		return "gem"
-	}
-	return "unknown"
-}
-
 type Discovered struct {
 	deps       []Dependency
 	foundTypes Bitmask
@@ -89,7 +72,7 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 	}
 
 	pomPath := filepath.Join(fullPath, "pom.xml")
-	goPath := filepath.Join(fullPath, "go.mod")
+	// goPath := filepath.Join(fullPath, "go.mod")
 	goPkgPath := filepath.Join(fullPath, "Gopkg.lock")
 	glidePath := filepath.Join(fullPath, "glide.lock")
 	rubyPath := filepath.Join(fullPath, "Gemfile") // Later we translate Gemfile.lock -> Gemfile to handle both cases
@@ -111,8 +94,29 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 			// Two checks, one for filenames and the second switch for full
 			// paths. Useful if we're looking for top of repo
 
-			switch filename := info.Name(); filename {
-			// for now only go for yarn and npm
+			// comparisons here are made against the filename only, not full path
+			// so matches will be found at any level of the file tree, not just top-level
+			filename := info.Name()
+			switch filename {
+			case "go.mod":
+				pkgs, err := scan.GetGolangDeps(path)
+				if err != nil {
+					return err
+				}
+
+				if len(pkgs) > 0 {
+					discovered.foundTypes.DepFoundAddFlag(LangGolang)
+				}
+
+				for path, goPkg := range pkgs {
+					d := Dependency{
+						DepType: LangGolang,
+						Path:    path,
+						Files:   goPkg.Gofiles,
+						Version: goPkg.Version,
+					}
+					discovered.deps = append(discovered.deps, d)
+				}
 			case "package-lock.json":
 				// if theres not a yarn.lock fall thru
 				if _, err := os.Stat(
@@ -198,26 +202,9 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 			// but also avoid double-handling, i.e. scanning once for each file
 			path = strings.Replace(path, "Gemfile.lock", "Gemfile", 1)
 
+			// comparisons here are against the full filepath, so will not match if
+			// these filesames are found in subdirectories, only the top level
 			switch path {
-			case goPath: // just support the top level go.mod for now
-				pkgs, err := scan.GetGolangDeps(path)
-				if err != nil {
-					return err
-				}
-
-				if len(pkgs) > 0 {
-					discovered.foundTypes.DepFoundAddFlag(LangGolang)
-				}
-
-				for path, goPkg := range pkgs {
-					d := Dependency{
-						DepType: LangGolang,
-						Path:    path,
-						Files:   goPkg.Gofiles,
-						Version: goPkg.Version,
-					}
-					discovered.deps = append(discovered.deps, d)
-				}
 			case goPkgPath:
 				pkgs, err := scan.GetGoPkgDeps(path)
 				if err != nil {
@@ -285,7 +272,6 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, 0, err // should't matter
 	}
@@ -296,7 +282,7 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 // findBaseDir walks a directory tree through empty subdirs til it finds a directory with content
 func findBaseDir(fullPath string) (string, error) {
 	log.Debugf("Checking %s", fullPath)
-	files, err := ioutil.ReadDir(fullPath)
+	files, err := os.ReadDir(fullPath)
 	if err != nil {
 		return "", fmt.Errorf("Could not read: %s", err)
 	}
@@ -321,9 +307,27 @@ func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
 	// but ignore any new errors
 	if len(deps) == 0 {
 		fullPath = filepath.Join(fullPath, "src")
-		log.Debugf("Checking %s", fullPath)
-		deps, foundTypes, _ = getDeps(fullPath)
+		if _, err := os.Stat(fullPath); err != nil {
+			log.Debugf("No deps found, trying %s", fullPath)
+			deps, foundTypes, _ = getDeps(fullPath)
+		}
 	}
 
-	return deps, foundTypes, err
+	// de-duplicate
+	unique := removeDuplicates(deps)
+
+	return unique, foundTypes, err
+}
+
+func removeDuplicates(deps []Dependency) []Dependency {
+	seen := map[string]bool{}
+	filtered := []Dependency{}
+	for _, dep := range deps {
+		key := dep.ToString()
+		if _, ok := seen[key]; !ok {
+			seen[key] = true
+			filtered = append(filtered, dep)
+		}
+	}
+	return filtered
 }
