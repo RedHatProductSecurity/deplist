@@ -1,5 +1,9 @@
 package deplist
 
+import (
+	"fmt"
+)
+
 // Bitmask type allows easy tagging of what langs there are
 type Bitmask uint32
 
@@ -18,3 +22,23 @@ func (f *Bitmask) DepFoundAddFlag(flag Bitmask) { *f |= flag }
 
 // DepFoundHasFlag deteremine if bitmask has a lang type
 func (f Bitmask) DepFoundHasFlag(flag Bitmask) bool { return f&flag != 0 }
+
+func (d *Dependency) ToString() string {
+	return fmt.Sprintf("pkg:%s/%s@%s", GetLanguageStr(d.DepType), d.Path, d.Version)
+}
+
+// GetLanguageStr returns from a bitmask return the ecosystem name
+func GetLanguageStr(bm Bitmask) string {
+	if bm&LangGolang != 0 {
+		return "go"
+	} else if bm&LangJava != 0 {
+		return "mvn"
+	} else if bm&LangNodeJS != 0 {
+		return "npm"
+	} else if bm&LangPython != 0 {
+		return "pypi"
+	} else if bm&LangRuby != 0 {
+		return "gem"
+	}
+	return "unknown"
+}

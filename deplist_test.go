@@ -2,7 +2,6 @@ package deplist
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -25,9 +24,11 @@ func BuildWant() []Dependency {
 		"golang.org/x/text/unicode",
 		"internal/abi",
 		"internal/bytealg",
+		"internal/coverage/rtcov",
 		"internal/cpu",
 		"internal/fmtsort",
 		"internal/goarch",
+		"internal/godebugs",
 		"internal/goexperiment",
 		"internal/goos",
 		"internal/itoa",
@@ -273,20 +274,20 @@ func BuildWant() []Dependency {
 	}
 
 	pythonSet := []Dependency{
-		Dependency{DepType: LangPython, Path: "cotyledon"},
-		Dependency{DepType: LangPython, Path: "Flask"},
-		Dependency{DepType: LangPython, Path: "kuryr-lib"},
-		Dependency{DepType: LangPython, Path: "docutils"},
-		Dependency{DepType: LangPython, Path: "python-dateutil"},
-		Dependency{DepType: LangPython, Path: "unittest2", Version: "0.5.1"},
-		Dependency{DepType: LangPython, Path: "cryptography", Version: "2.3.0"},
-		Dependency{DepType: LangPython, Path: "suds-py3"},
-		Dependency{DepType: LangPython, Path: "suds"},
-		Dependency{DepType: LangPython, Path: "git+https://github.com/candlepin/subscription-manager#egg=subscription_manager"},
-		Dependency{DepType: LangPython, Path: "git+https://github.com/candlepin/python-iniparse#egg=iniparse"},
-		Dependency{DepType: LangPython, Path: "iniparse"},
-		Dependency{DepType: LangPython, Path: "requests"},
-		Dependency{DepType: LangPython, Path: "m2crypto"},
+		{DepType: LangPython, Path: "cotyledon"},
+		{DepType: LangPython, Path: "Flask"},
+		{DepType: LangPython, Path: "kuryr-lib"},
+		{DepType: LangPython, Path: "docutils"},
+		{DepType: LangPython, Path: "python-dateutil"},
+		{DepType: LangPython, Path: "unittest2", Version: "0.5.1"},
+		{DepType: LangPython, Path: "cryptography", Version: "2.3.0"},
+		{DepType: LangPython, Path: "suds-py3"},
+		{DepType: LangPython, Path: "suds"},
+		{DepType: LangPython, Path: "git+https://github.com/candlepin/subscription-manager#egg=subscription_manager"},
+		{DepType: LangPython, Path: "git+https://github.com/candlepin/python-iniparse#egg=iniparse"},
+		{DepType: LangPython, Path: "iniparse"},
+		{DepType: LangPython, Path: "requests"},
+		{DepType: LangPython, Path: "m2crypto"},
 	}
 
 	for _, n := range golangPaths {
@@ -418,14 +419,14 @@ func TestFindBaseDir(t *testing.T) {
 	}
 
 	dirpath := filepath.Join(top, "baz")
-	os.MkdirAll(dirpath, 0755)
+	os.MkdirAll(dirpath, 0o755)
 	tests[1] = TestCase{
 		Input:    dirpath,
 		Expected: dirpath,
 		Err:      false,
 	}
 
-	tempFile, err := ioutil.TempFile(top, "bar")
+	tempFile, err := os.CreateTemp(top, "bar")
 	if err != nil {
 		t.Error(err)
 	}
@@ -436,7 +437,7 @@ func TestFindBaseDir(t *testing.T) {
 	}
 
 	dirpath = filepath.Join(top, "foo/bar/foo/bar/foo/bar")
-	err = os.MkdirAll(dirpath, 0755)
+	err = os.MkdirAll(dirpath, 0o755)
 	if err != nil {
 		t.Error(err)
 	}
@@ -448,11 +449,11 @@ func TestFindBaseDir(t *testing.T) {
 
 	top = t.TempDir()
 	dirpath = filepath.Join(top, "foo/bar/foo/bar/foo/bar")
-	err = os.MkdirAll(dirpath, 0755)
+	err = os.MkdirAll(dirpath, 0o755)
 	if err != nil {
 		t.Error(err)
 	}
-	tempFile, err = ioutil.TempFile(filepath.Join(top, "foo/bar/foo"), "baz")
+	_, err = os.CreateTemp(filepath.Join(top, "foo/bar/foo"), "baz")
 	if err != nil {
 		t.Error(err)
 	}

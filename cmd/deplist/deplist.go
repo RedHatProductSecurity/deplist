@@ -20,7 +20,7 @@ func main() {
 	}
 
 	if flag.Args() == nil || len(flag.Args()) == 0 {
-		fmt.Println("Not path to scan was specified, i.e. deplist /tmp/files/")
+		fmt.Println("No path to scan was specified, i.e. deplist /tmp/files/")
 		return
 	}
 
@@ -33,9 +33,7 @@ func main() {
 
 	if *deptypePtr == -1 {
 		for _, dep := range deps {
-			version := dep.Version
-
-			inst, _ := purl.FromString(fmt.Sprintf("pkg:%s/%s@%s", deplist.GetLanguageStr(dep.DepType), dep.Path, version))
+			inst, _ := purl.FromString(dep.ToString())
 			fmt.Println(inst)
 		}
 	} else {
