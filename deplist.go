@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/RedHatProductSecurity/deplist/internal/scan"
@@ -61,7 +62,19 @@ func addPackagesToDeps(discovered Discovered, pkgs map[string]string, lang Bitma
 	return discovered
 }
 
-func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
+var defaultIgnore []string = []string{
+	"docs",
+	"example",
+	"examples",
+	"node_modules",
+	"scripts",
+	"test",
+	"tests",
+	"vendor",
+	".git",
+}
+
+func getDeps(fullPath string, ignoreDirs []string) ([]Dependency, Bitmask, error) {
 	var discovered Discovered
 	// special var so we don't double handle both repos with both
 	// a Gemfile and Gemfile.lock
@@ -78,6 +91,9 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 	rubyPath := filepath.Join(fullPath, "Gemfile") // Later we translate Gemfile.lock -> Gemfile to handle both cases
 	pythonPath := filepath.Join(fullPath, "requirements.txt")
 
+	ignoreDirs = append(ignoreDirs, defaultIgnore...)
+	log.Debugf("directories ignored: %s", ignoreDirs)
+
 	// point at the parent repo, but can't assume where the indicators will be
 	err := filepath.Walk(fullPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -87,7 +103,8 @@ func getDeps(fullPath string) ([]Dependency, Bitmask, error) {
 
 		if info.IsDir() {
 			// prevent walking down the vendors, docs, etc
-			if utils.BelongsToIgnoreList(info.Name()) {
+			if slices.Contains(ignoreDirs, info.Name()) {
+				log.Debugf("Skipping '%s', directory  name '%s' in ignore list", path, info.Name())
 				return filepath.SkipDir
 			}
 		} else {
@@ -293,13 +310,13 @@ func findBaseDir(fullPath string) (string, error) {
 }
 
 // GetDeps scans a given repository and returns all dependencies found in a DependencyList struct.
-func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
+func GetDeps(fullPath string, ignoreDirs ...string) ([]Dependency, Bitmask, error) {
 	fullPath, err := findBaseDir(fullPath)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	deps, foundTypes, err := getDeps(fullPath)
+	deps, foundTypes, err := getDeps(fullPath, ignoreDirs)
 	if err != nil {
 		return deps, foundTypes, err
 	}
@@ -309,7 +326,7 @@ func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
 		fullPath = filepath.Join(fullPath, "src")
 		if _, err := os.Stat(fullPath); err != nil {
 			log.Debugf("No deps found, trying %s", fullPath)
-			deps, foundTypes, _ = getDeps(fullPath)
+			deps, foundTypes, _ = getDeps(fullPath, ignoreDirs)
 		}
 	}
 

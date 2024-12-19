@@ -59,7 +59,7 @@ DEBU[0000] GetGolangDeps test/testRepo/go.mod
 The api functions as follows:
 
 ```
-func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
+func GetDeps(fullPath string, ignoreDirs ...string) ([]Dependency, Bitmask, error) {
 ```
 
 ### Parameters
@@ -70,7 +70,7 @@ func GetDeps(fullPath string) ([]Dependency, Bitmask, error) {
 
 ### Returns
 
-* **Depenency:**
+* **Dependency:**
 
   Array of Dependency structs from [dependencies.go](dependencies.go)
 
