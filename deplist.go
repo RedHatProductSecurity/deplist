@@ -69,6 +69,7 @@ var defaultIgnore []string = []string{
 	"node_modules",
 	"scripts",
 	"test",
+	"test_scripts",
 	"tests",
 	"vendor",
 	".git",
