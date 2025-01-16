@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/RedHatProductSecurity/deplist"
 	purl "github.com/mcoops/packageurl-go"
@@ -12,11 +13,17 @@ import (
 func main() {
 	deptypePtr := flag.Int("deptype", -1, "golang, nodejs, python etc")
 	debugPtr := flag.Bool("debug", false, "debug logging (default false)")
+	ignorePtr := flag.String("ignore", "", "comma separated list of directory names to ignore (default '')")
 
 	flag.Parse()
 
 	if *debugPtr == true {
 		log.SetLevel(log.DebugLevel)
+	}
+
+	var ignoreDirs []string
+	if ignorePtr != nil {
+		ignoreDirs = strings.Split(*ignorePtr, ",")
 	}
 
 	if flag.Args() == nil || len(flag.Args()) == 0 {
@@ -26,7 +33,7 @@ func main() {
 
 	path := flag.Args()[0]
 
-	deps, _, err := deplist.GetDeps(path)
+	deps, _, err := deplist.GetDeps(path, ignoreDirs...)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
