@@ -39,6 +39,8 @@ func GetLanguageStr(bm Bitmask) string {
 		return "pypi"
 	} else if bm&LangRuby != 0 {
 		return "gem"
+	} else if bm&LangRust != 0 {
+		return "cargo"
 	}
 	return "unknown"
 }

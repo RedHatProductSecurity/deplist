@@ -10,6 +10,7 @@ Supports:
  - Python
  - Ruby
  - Java
+ - Rust
 
 Dependencies are printed in PackageURL format.
 
