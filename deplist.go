@@ -21,6 +21,7 @@ const (
 	LangNodeJS
 	LangPython
 	LangRuby
+	LangRust
 )
 
 func init() {
@@ -70,6 +71,7 @@ var defaultIgnore []string = []string{
 	"scripts",
 	"test",
 	"test_scripts",
+	"testing",
 	"tests",
 	"vendor",
 	".git",
@@ -166,6 +168,15 @@ func getDeps(fullPath string, ignoreDirs []string) ([]Dependency, Bitmask, error
 							Files:   []string{},
 						})
 				}
+			case "Cargo.lock":
+				pkgs, err := scan.GetCrates(path)
+				if err != nil {
+					// ignore error
+					log.Debugf("failed to scan rust crates: %s", path)
+					return nil
+				}
+
+				discovered = addPackagesToDeps(discovered, pkgs, LangRust)
 			default:
 				ext := filepath.Ext(filename)
 				// java
@@ -221,7 +232,7 @@ func getDeps(fullPath string, ignoreDirs []string) ([]Dependency, Bitmask, error
 			path = strings.Replace(path, "Gemfile.lock", "Gemfile", 1)
 
 			// comparisons here are against the full filepath, so will not match if
-			// these filesames are found in subdirectories, only the top level
+			// these filenames are found in subdirectories, only the top level
 			switch path {
 			case goPkgPath:
 				pkgs, err := scan.GetGoPkgDeps(path)
