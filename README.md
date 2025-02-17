@@ -1,16 +1,17 @@
-[![Tests](https://github.com/RedHatProductSecurity/deplist/actions/workflows/go.yml/badge.svg)](https://github.com/RedHatProductSecurity/deplist/actions/workflows/go.yml)
-
 # deplist
+
+[![Tests](https://github.com/RedHatProductSecurity/deplist/actions/workflows/go.yml/badge.svg)](https://github.com/RedHatProductSecurity/deplist/actions/workflows/go.yml)
 
 Scan and list the dependencies in a source code repository.
 
 Supports:
- - Go
- - NodeJS
- - Python
- - Ruby
- - Java
- - Rust
+
+- Go
+- Java
+- NodeJS
+- Python
+- Ruby
+- Rust
 
 Dependencies are printed in PackageURL format.
 
@@ -19,7 +20,7 @@ Dependencies are printed in PackageURL format.
 On Fedora:
 
 ```bash
-$ dnf install golang-bin yarnpkg maven rubygem-bundler ruby-devel gcc gcc-c++ npm
+dnf install golang-bin yarnpkg rubygem-bundler ruby-devel npm
 ```
 
 ## Command Line
@@ -59,36 +60,37 @@ DEBU[0000] GetGolangDeps test/testRepo/go.mod
 
 The api functions as follows:
 
-```
+```go
 func GetDeps(fullPath string, ignoreDirs ...string) ([]Dependency, Bitmask, error) {
 ```
 
 ### Parameters
 
-* **fullPath:**
+- **fullPath:**
 
   Path to directory with source code.
 
 ### Returns
 
-* **Dependency:**
+- **Dependency:**
 
   Array of Dependency structs from [dependencies.go](dependencies.go)
 
-
-* **Bitmask:**
+- **Bitmask:**
 
   A bitmask of found languages:
 
-```
+```go
 const (
-	LangGolang = 1 << iota
-	LangNodeJS
-	LangPython
-	LangRuby
+  LangGolang  = 1 << iota
+  LangJava
+  LangNodeJS
+  LangPython
+  LangRuby
+  LangRust
 )
 ```
 
-* **error:**
+- **error:**
 
   Standard Go error handling

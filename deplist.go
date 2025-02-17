@@ -14,6 +14,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const LangGeneric = 0
+
 // enums start at 1 to allow us to specify found languages 0 = nil
 const (
 	LangGolang = 1 << iota
@@ -30,7 +32,6 @@ func init() {
 		"yarn":   "yarn",
 		"npm":    "npm",
 		"go":     "go",
-		"mvn":    "maven",
 		"bundle": "bundler gem",
 	}
 
@@ -64,17 +65,21 @@ func addPackagesToDeps(discovered Discovered, pkgs map[string]string, lang Bitma
 }
 
 var defaultIgnore []string = []string{
+	".git",
 	"docs",
 	"example",
 	"examples",
+	"maven-test",
 	"node_modules",
 	"scripts",
 	"test",
+	"testData",
 	"test_scripts",
+	"testdata",
 	"testing",
+	"testresources",
 	"tests",
 	"vendor",
-	".git",
 }
 
 func getDeps(fullPath string, ignoreDirs []string) ([]Dependency, Bitmask, error) {
@@ -201,7 +206,8 @@ func getDeps(fullPath string, ignoreDirs []string) ([]Dependency, Bitmask, error
 						return nil
 					}
 
-					pkgs, err := scan.GetJarDeps(path)
+					dir := filepath.Dir(path)
+					pkgs, err := scan.GetJavaDeps(dir, ignoreDirs)
 					if err == nil {
 
 						if len(pkgs) > 0 {
@@ -269,7 +275,8 @@ func getDeps(fullPath string, ignoreDirs []string) ([]Dependency, Bitmask, error
 					discovered.deps = append(discovered.deps, d)
 				}
 			case pomPath:
-				pkgs, err := scan.GetMvnDeps(path)
+				dir := filepath.Dir(path)
+				pkgs, err := scan.GetJavaDeps(dir, ignoreDirs)
 				if err != nil {
 					return err
 				}

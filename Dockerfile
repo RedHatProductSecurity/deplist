@@ -1,18 +1,15 @@
-FROM golang:1.16-alpine AS build
+FROM golang:1.22-alpine AS build
 WORKDIR /go/src/project/
 COPY . /go/src/project/
 RUN go build -o /bin/deplist ./cmd/deplist/ 
 
-FROM registry.fedoraproject.org/fedora:34
+FROM registry.fedoraproject.org/fedora:40
 RUN dnf install -y \
-    golang-bin-1.16 \
+    golang-bin-1.22* \
     yarnpkg \
-    maven \
     rubygem-bundler \
     ruby-devel \
-    gcc \
-    gcc-c++ \ 
     npm \
     && dnf clean all
-COPY --from=build /bin/deplist /
-ENTRYPOINT ["/deplist"]
+COPY --from=build /bin/deplist /bin
+ENTRYPOINT ["/bin/deplist"]
