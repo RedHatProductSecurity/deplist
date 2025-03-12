@@ -1,77 +1,98 @@
 package scan
 
 import (
-	"os/exec"
+	"context"
+	"os"
 	"path/filepath"
-	"strings"
+	"slices"
 
+	scalibr "github.com/google/osv-scalibr"
+	"github.com/google/osv-scalibr/extractor"
+	"github.com/google/osv-scalibr/extractor/filesystem/language/java/javalockfile"
+	el "github.com/google/osv-scalibr/extractor/filesystem/list"
+	scalibrfs "github.com/google/osv-scalibr/fs"
+	scalog "github.com/google/osv-scalibr/log"
 	log "github.com/sirupsen/logrus"
 )
 
-// GetMvnDeps uses the mvn command to attempt to list the dependencies for a
-// given project located at `path`
-func GetMvnDeps(path string) (map[string]string, error) {
-	log.Debugf("GetMvnDeps %s", path)
-	var gathered map[string]string
-	var found map[string]bool
-
-	dirPath := filepath.Dir(path)
-
-	// cmd := exec.Command("mvn",
-	// 	"--no-transfer-progress",
-	// 	"dependency:tree",
-	// 	"-DoutputType=dot",
-	// )
-
-	// Opposed to mvn dependency:tree which fails if there's issues with
-	// finding build deps dependency:collect does not fail to continue
-	cmd := exec.Command(
-		"mvn",
-		"--no-transfer-progress",
-		"dependency:collect",
-		"-DincludeScope=runtime")
-	cmd.Dir = dirPath
-
-	// suppress error, it always returns errors
-	data, _ := cmd.Output()
-
-	res := strings.Split(string(data), "\n")
-
-	gathered = make(map[string]string)
-
-	for _, s := range res {
-		if len(s) < 5 && !strings.HasPrefix(s, "[INFO]") {
-			continue
-		}
-
-		if !strings.HasSuffix(s, "compile") && !strings.HasSuffix(s, "runtime") {
-			continue
-		}
-
-		// remove the :compile or :runtime off the end
-		lastColon := strings.LastIndex(s, ":")
-		if lastColon == -1 {
-			continue
-		}
-		s = s[:lastColon]
-
-		verIdx := strings.LastIndex(s, ":")
-		if verIdx == -1 || len(s) < (verIdx+1) {
-			continue
-		}
-		ver := s[verIdx+1:]
-
-		name := strings.Replace(s, ":"+ver, "", 1)
-
-		startIdx := strings.Index(name, "    ")
-		if startIdx == -1 || len(name) < (startIdx+4) {
-			continue
-		}
-		name = name[startIdx+4:]
-
-		if _, ok := found[name+ver]; !ok {
-			gathered[name] = ver
+func isTestDep(i *extractor.Inventory) bool {
+	if metadata, ok := i.Metadata.(*javalockfile.Metadata); ok {
+		if slices.Contains(metadata.DepGroups(), "test") {
+			return true
 		}
 	}
+	return false
+}
+
+func findSkipDirs(root string, compare []string) ([]string, error) {
+	var results []string
+
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip if not a directory
+		if !info.IsDir() {
+			return nil
+		}
+
+		// Check if the directory name (not the full path) matches any string in compare
+		if slices.Contains(compare, info.Name()) {
+			results = append(results, path)
+		}
+
+		return nil
+	})
+
+	return results, err
+}
+
+func GetJavaDeps(path string, skipDirs []string) (map[string]string, error) {
+	log.Debugf("GetJavaDeps %s", path)
+	scalog.SetLogger(log.StandardLogger())
+
+	// osv-scalibr prints annoying messages at InfoLevel
+	origLevel := log.GetLevel()
+	if origLevel >= log.InfoLevel {
+		log.SetLevel(log.WarnLevel)
+		defer log.SetLevel(origLevel)
+	}
+
+	// annoyingly, scalibr requires fullpaths for DirsToSkip, so we need to find these ourselves
+	fullSkipPaths, err := findSkipDirs(path, skipDirs)
+	if err != nil {
+		return nil, err
+	}
+
+	dir := filepath.Dir(path)
+	sc := &scalibr.ScanConfig{
+		ScanRoots:             scalibrfs.RealFSScanRoots(dir),
+		FilesystemExtractors:  el.Java,
+		PrintDurationAnalysis: false,
+		DirsToSkip:            fullSkipPaths,
+	}
+
+	gathered := make(map[string]string, 0)
+	results := scalibr.New().Scan(context.Background(), sc)
+	for _, i := range results.Inventories {
+		if isTestDep(i) {
+			log.Debugf("skipping test dependency %s@%s", i.Name, i.Version)
+			continue
+		}
+		p := i.Extractor.ToPURL(i)
+		name := p.Name
+		if len(p.Namespace) > 0 {
+			name = p.Namespace + "/" + p.Name
+		}
+		// prefer empty string for versions, over "0" or "unknown"
+		version := p.Version
+		if p.Version == "0" || p.Version == "unknown" {
+			version = ""
+		}
+
+		gathered[name] = version
+	}
+
 	return gathered, nil
 }

@@ -16,52 +16,55 @@ func init() {
 func BuildWant() []Dependency {
 	var deps []Dependency
 
-	golangPaths := []string{
-		"errors",
-		"fmt",
-		"github.com/RedHatProductSecurity/deplist",
-		"github.com/openshift/api/config/v1",
-		"golang.org/x/text/unicode",
-		"internal/abi",
-		"internal/bytealg",
-		"internal/coverage/rtcov",
-		"internal/cpu",
-		"internal/fmtsort",
-		"internal/goarch",
-		"internal/godebugs",
-		"internal/goexperiment",
-		"internal/goos",
-		"internal/itoa",
-		"internal/oserror",
-		"internal/poll",
-		"internal/race",
-		"internal/reflectlite",
-		"internal/safefilepath",
-		"internal/syscall/execenv",
-		"internal/syscall/unix",
-		"internal/testlog",
-		"internal/unsafeheader",
-		"io",
-		"io/fs",
-		"math",
-		"math/bits",
-		"os",
-		"path",
-		"reflect",
-		"runtime",
-		"runtime/internal/atomic",
-		"runtime/internal/math",
-		"runtime/internal/sys",
-		"runtime/internal/syscall",
-		"sort",
-		"strconv",
-		"sync",
-		"sync/atomic",
-		"syscall",
-		"time",
-		"unicode",
-		"unicode/utf8",
-		"unsafe",
+	golangSet := []Dependency{
+		{DepType: LangGolang, Path: "cmp"},
+		{DepType: LangGolang, Path: "errors"},
+		{DepType: LangGolang, Path: "fmt"},
+		{DepType: LangGolang, Path: "github.com/RedHatProductSecurity/deplist"},
+		{DepType: LangGolang, Path: "github.com/openshift/api/config/v1"},
+		{DepType: LangGolang, Path: "golang.org/x/text/unicode", Version: "v0.3.3"},
+		{DepType: LangGolang, Path: "internal/abi"},
+		{DepType: LangGolang, Path: "internal/bytealg"},
+		{DepType: LangGolang, Path: "internal/chacha8rand"},
+		{DepType: LangGolang, Path: "internal/coverage/rtcov"},
+		{DepType: LangGolang, Path: "internal/cpu"},
+		{DepType: LangGolang, Path: "internal/fmtsort"},
+		{DepType: LangGolang, Path: "internal/goarch"},
+		{DepType: LangGolang, Path: "internal/godebugs"},
+		{DepType: LangGolang, Path: "internal/goexperiment"},
+		{DepType: LangGolang, Path: "internal/goos"},
+		{DepType: LangGolang, Path: "internal/itoa"},
+		{DepType: LangGolang, Path: "internal/oserror"},
+		{DepType: LangGolang, Path: "internal/poll"},
+		{DepType: LangGolang, Path: "internal/race"},
+		{DepType: LangGolang, Path: "internal/reflectlite"},
+		{DepType: LangGolang, Path: "internal/safefilepath"},
+		{DepType: LangGolang, Path: "internal/syscall/execenv"},
+		{DepType: LangGolang, Path: "internal/syscall/unix"},
+		{DepType: LangGolang, Path: "internal/testlog"},
+		{DepType: LangGolang, Path: "internal/unsafeheader"},
+		{DepType: LangGolang, Path: "io"},
+		{DepType: LangGolang, Path: "io/fs"},
+		{DepType: LangGolang, Path: "math"},
+		{DepType: LangGolang, Path: "math/bits"},
+		{DepType: LangGolang, Path: "os"},
+		{DepType: LangGolang, Path: "path"},
+		{DepType: LangGolang, Path: "reflect"},
+		{DepType: LangGolang, Path: "runtime"},
+		{DepType: LangGolang, Path: "runtime/internal/atomic"},
+		{DepType: LangGolang, Path: "runtime/internal/math"},
+		{DepType: LangGolang, Path: "runtime/internal/sys"},
+		{DepType: LangGolang, Path: "runtime/internal/syscall"},
+		{DepType: LangGolang, Path: "slices"},
+		{DepType: LangGolang, Path: "sort"},
+		{DepType: LangGolang, Path: "strconv"},
+		{DepType: LangGolang, Path: "sync"},
+		{DepType: LangGolang, Path: "sync/atomic"},
+		{DepType: LangGolang, Path: "syscall"},
+		{DepType: LangGolang, Path: "time"},
+		{DepType: LangGolang, Path: "unicode"},
+		{DepType: LangGolang, Path: "unicode/utf8"},
+		{DepType: LangGolang, Path: "unsafe"},
 	}
 
 	glidePaths := []string{
@@ -89,66 +92,66 @@ func BuildWant() []Dependency {
 		"github.com/aws/aws-sdk-go/aws/corehandlers",
 	}
 
-	npmSet1 := []string{
-		"loose-envify",
-		"iconv-lite",
-		"d3-brush",
-		"d3-zoom",
-		"rw",
-		"d3-ease",
-		"object-assign",
-		"commander",
-		"d3-dsv",
-		"d3-scale",
-		"is-plain-object",
-		"d3-quadtree",
-		"tiny-warning",
-		"d3-hierarchy",
-		"d3-scale-chromatic",
-		"d3-axis",
-		"d3-color",
-		"prismjs",
-		"iconv-lite",
-		"angular",
-		"d3-delaunay",
-		"rxjs",
-		"d3-path",
-		"d3-array",
-		"js-tokens",
-		"d3-contour",
-		"safer-buffer",
-		"react-is",
-		"d3-dispatch",
-		"d3-force",
-		"prop-types",
-		"tiny-emitter",
-		"d3-polygon",
-		"d3-chord",
-		"d3-fetch",
-		"tslib",
-		"good-listener",
-		"d3",
-		"delegate",
-		"d3-drag",
-		"delaunator",
-		"d3-timer",
-		"d3-geo",
-		"slate",
-		"select",
-		"esrever",
-		"d3-transition",
-		"clipboard",
-		"d3-format",
-		"d3-random",
-		"d3-shape",
-		"d3-time",
-		"immer",
-		"@types/esrever",
-		"d3-time-format",
-		"d3-selection",
-		"react",
-		"tether",
-		"d3-interpolate",
+	npmSet := []Dependency{
+		{DepType: LangNodeJS, Path: "@types/esrever"},
+		{DepType: LangNodeJS, Path: "angular"},
+		{DepType: LangNodeJS, Path: "clipboard"},
+		{DepType: LangNodeJS, Path: "commander"},
+		{DepType: LangNodeJS, Path: "d3"},
+		{DepType: LangNodeJS, Path: "d3-array"},
+		{DepType: LangNodeJS, Path: "d3-axis"},
+		{DepType: LangNodeJS, Path: "d3-brush"},
+		{DepType: LangNodeJS, Path: "d3-chord"},
+		{DepType: LangNodeJS, Path: "d3-color"},
+		{DepType: LangNodeJS, Path: "d3-contour"},
+		{DepType: LangNodeJS, Path: "d3-delaunay"},
+		{DepType: LangNodeJS, Path: "d3-dispatch"},
+		{DepType: LangNodeJS, Path: "d3-drag"},
+		{DepType: LangNodeJS, Path: "d3-dsv"},
+		{DepType: LangNodeJS, Path: "d3-ease"},
+		{DepType: LangNodeJS, Path: "d3-fetch"},
+		{DepType: LangNodeJS, Path: "d3-force"},
+		{DepType: LangNodeJS, Path: "d3-format"},
+		{DepType: LangNodeJS, Path: "d3-geo"},
+		{DepType: LangNodeJS, Path: "d3-hierarchy"},
+		{DepType: LangNodeJS, Path: "d3-interpolate"},
+		{DepType: LangNodeJS, Path: "d3-path"},
+		{DepType: LangNodeJS, Path: "d3-polygon"},
+		{DepType: LangNodeJS, Path: "d3-quadtree"},
+		{DepType: LangNodeJS, Path: "d3-random"},
+		{DepType: LangNodeJS, Path: "d3-scale"},
+		{DepType: LangNodeJS, Path: "d3-scale-chromatic"},
+		{DepType: LangNodeJS, Path: "d3-selection"},
+		{DepType: LangNodeJS, Path: "d3-shape"},
+		{DepType: LangNodeJS, Path: "d3-time"},
+		{DepType: LangNodeJS, Path: "d3-time-format"},
+		{DepType: LangNodeJS, Path: "d3-timer"},
+		{DepType: LangNodeJS, Path: "d3-transition"},
+		{DepType: LangNodeJS, Path: "d3-zoom"},
+		{DepType: LangNodeJS, Path: "delaunator"},
+		{DepType: LangNodeJS, Path: "delegate"},
+		{DepType: LangNodeJS, Path: "esrever"},
+		{DepType: LangNodeJS, Path: "good-listener"},
+		{DepType: LangNodeJS, Path: "iconv-lite"},
+		{DepType: LangNodeJS, Path: "iconv-lite"},
+		{DepType: LangNodeJS, Path: "immer"},
+		{DepType: LangNodeJS, Path: "is-plain-object"},
+		{DepType: LangNodeJS, Path: "js-tokens"},
+		{DepType: LangNodeJS, Path: "loose-envify"},
+		{DepType: LangNodeJS, Path: "object-assign"},
+		{DepType: LangNodeJS, Path: "prismjs"},
+		{DepType: LangNodeJS, Path: "prop-types"},
+		{DepType: LangNodeJS, Path: "react"},
+		{DepType: LangNodeJS, Path: "react-is"},
+		{DepType: LangNodeJS, Path: "rw"},
+		{DepType: LangNodeJS, Path: "rxjs"},
+		{DepType: LangNodeJS, Path: "safer-buffer"},
+		{DepType: LangNodeJS, Path: "select"},
+		{DepType: LangNodeJS, Path: "slate"},
+		{DepType: LangNodeJS, Path: "tether"},
+		{DepType: LangNodeJS, Path: "tiny-emitter"},
+		{DepType: LangNodeJS, Path: "tiny-warning"},
+		{DepType: LangNodeJS, Path: "tslib"},
 	}
 
 	rubySet := []Dependency{
@@ -322,20 +325,9 @@ func BuildWant() []Dependency {
 		{DepType: LangRust, Path: "pci-driver", Version: "0.1.3"},
 	}
 
-	for _, n := range golangPaths {
-		d := Dependency{
-			DepType: 1,
-			Path:    n,
-		}
-
-		deps = append(deps, d)
-	}
-
-	deps[4].Version = "v0.3.3" // test golang.org/x/text/unicode version
-
 	for _, n := range glidePaths {
 		deps = append(deps, Dependency{
-			DepType: 1,
+			DepType: LangGolang,
 			Path:    n,
 		})
 	}
@@ -346,21 +338,21 @@ func BuildWant() []Dependency {
 			ver = "v1.13.49"
 		}
 		deps = append(deps, Dependency{
-			DepType: 1,
+			DepType: LangGolang,
 			Path:    n,
 			Version: ver,
 		})
 	}
 
-	for _, n := range npmSet1 {
-		d := Dependency{
-			DepType: LangNodeJS,
-			Path:    n,
-		}
-		deps = append(deps, d)
+	javaSet := []Dependency{
+		{DepType: LangJava, Path: "com.amazonaws/aws-lambda-java-core", Version: "1.0.0"},
+		// junit should be excluded because it's a test dep
+		// {DepType: LangJava, Path: "junit:junit", Version: "4.13.1"},
 	}
 
-	deps = append(deps, Dependency{DepType: 2, Path: "com.amazonaws:aws-lambda-java-core:jar", Version: "1.0.0"}) // java
+	deps = append(deps, golangSet...)
+	deps = append(deps, npmSet...)
+	deps = append(deps, javaSet...)
 	deps = append(deps, rubySet...)
 	deps = append(deps, pythonSet...)
 	deps = append(deps, rustSet...)
@@ -384,7 +376,7 @@ func TestGetDeps(t *testing.T) {
 		return
 	}
 
-	expectedBitmask := 63
+	expectedBitmask := LangGolang | LangNodeJS | LangJava | LangPython | LangRuby | LangRust
 	if gotBitmask != Bitmask(expectedBitmask) {
 		t.Errorf("GotBitmask() != %d; got: %d", expectedBitmask, gotBitmask)
 	}

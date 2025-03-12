@@ -13,8 +13,6 @@ type Dependency struct {
 	Path    string   // the module path, github.com/teris-io/shortid
 	Version string   // v0.0.0-20171029131806-771a37caa5cf
 	Files   []string // if available, list of all files for a package
-	// /usr/lib/go-1.13/src/regexp/syntax/compile.go
-	// /usr/lib/go-1.13/src/regexp/syntax/doc.go
 }
 
 // DepFoundAddFlag add a lang type to the bitmask
@@ -30,9 +28,9 @@ func (d *Dependency) ToString() string {
 // GetLanguageStr returns from a bitmask return the ecosystem name
 func GetLanguageStr(bm Bitmask) string {
 	if bm&LangGolang != 0 {
-		return "go"
+		return "golang"
 	} else if bm&LangJava != 0 {
-		return "mvn"
+		return "maven"
 	} else if bm&LangNodeJS != 0 {
 		return "npm"
 	} else if bm&LangPython != 0 {
@@ -42,5 +40,5 @@ func GetLanguageStr(bm Bitmask) string {
 	} else if bm&LangRust != 0 {
 		return "cargo"
 	}
-	return "unknown"
+	return "generic"
 }

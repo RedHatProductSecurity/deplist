@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/RedHatProductSecurity/deplist"
-	purl "github.com/mcoops/packageurl-go"
+	purl "github.com/package-url/packageurl-go"
 	log "github.com/sirupsen/logrus"
 )
 
