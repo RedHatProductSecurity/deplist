@@ -1,2 +1,4 @@
 .vscode
 deplist
+cover.out
+coverage.html
