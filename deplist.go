@@ -101,6 +101,7 @@ func getDeps(fullPath string, ignoreDirs []string) ([]Dependency, Bitmask, error
 
 	ignoreDirs = append(ignoreDirs, defaultIgnore...)
 	log.Debugf("directories ignored: %s", ignoreDirs)
+	visited := make([]string, 0)
 
 	// point at the parent repo, but can't assume where the indicators will be
 	err := filepath.Walk(fullPath, func(path string, info os.FileInfo, err error) error {
@@ -207,26 +208,31 @@ func getDeps(fullPath string, ignoreDirs []string) ([]Dependency, Bitmask, error
 					}
 
 					dir := filepath.Dir(path)
-					pkgs, err := scan.GetJavaDeps(dir, ignoreDirs)
-					if err == nil {
+					if !slices.Contains(visited, dir) {
+						// check visited, because many .jar files can be in the same directory
+						// and we don't want to process the same directory more than once
+						visited = append(visited, dir)
+						pkgs, err := scan.GetJavaDeps(dir, ignoreDirs)
+						if err == nil {
 
-						if len(pkgs) > 0 {
-							discovered.foundTypes.DepFoundAddFlag(LangJava)
-						}
+							if len(pkgs) > 0 {
+								discovered.foundTypes.DepFoundAddFlag(LangJava)
+							}
 
-						for name, version := range pkgs {
-							// just in case we report the full path to the dep
-							name = strings.Replace(name, fullPath, "", 1)
+							for name, version := range pkgs {
+								// just in case we report the full path to the dep
+								name = strings.Replace(name, fullPath, "", 1)
 
-							// if the dep ends with -javadoc or -sources, not really interested
-							if !strings.HasSuffix(version, "-javadoc") && !strings.HasSuffix(version, "-sources") {
-								discovered.deps = append(discovered.deps,
-									Dependency{
-										DepType: LangJava,
-										Path:    name,
-										Version: version,
-										Files:   []string{},
-									})
+								// if the dep ends with -javadoc or -sources, not really interested
+								if !strings.HasSuffix(version, "-javadoc") && !strings.HasSuffix(version, "-sources") {
+									discovered.deps = append(discovered.deps,
+										Dependency{
+											DepType: LangJava,
+											Path:    name,
+											Version: version,
+											Files:   []string{},
+										})
+								}
 							}
 						}
 					}
